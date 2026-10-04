@@ -1,11 +1,14 @@
-// 路由與全域設定（深淺色、大螢幕模式）
+// 路由與全域設定（登入檢查、深淺色、版面）
 
 import { mountPlot } from './plot.js';
 import { mountAK } from './ak.js';
 import { mountAxis } from './axis.js';
 import { mountFlip } from './flip.js';
 import { mountFold } from './foldlab.js';
-import { isUnlocked, onSettings } from './settings.js';
+import { isUnlocked, isAdmin, onSettings } from './settings.js';
+import { init, session, loggedIn, logout, startPolling } from './backend.js';
+import { renderLogin, renderNickname } from './login.js';
+import { mountAdmin } from './admin.js';
 
 const view = document.getElementById('view');
 const root = document.documentElement;
@@ -95,22 +98,55 @@ function renderQuiz() {
     : '<div class="placeholder"><h2 style="margin-top:0">測驗區</h2><p>關卡內容討論中，之後開放。</p></div>';
 }
 
+// 右上角：暱稱與登出、管理頁連結
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function renderUserbox() {
+  const box = document.getElementById('userbox');
+  document.querySelector('[data-nav="admin"]').hidden = !isAdmin();
+  if (session.offline) { box.innerHTML = '<span class="badge bad" title="連不到伺服器，所有內容暫時開放">離線模式</span>'; return; }
+  if (!loggedIn()) { box.innerHTML = ''; return; }
+  const name = session.me?.nickname || session.me?.student_id || session.email || '管理員';
+  box.innerHTML = `<span class="badge" title="${esc(session.me?.student_id || session.email || '')}">${esc(name)}${isAdmin() ? '（管理）' : ''}</span>
+    <button type="button" class="ghost-btn" id="btn-logout">登出</button>`;
+  box.querySelector('#btn-logout').addEventListener('click', async () => { await logout(); renderUserbox(); route(); });
+}
+
 // 老師改變開放設定時：目前頁面的開放狀態有變就重新載入，否則只更新分頁上的鎖頭
 onSettings(() => {
+  renderUserbox();
   if (current.page && isUnlocked(current.page) === current.locked) { route(); return; }
   const nav = view.querySelector('.subtabs');
   if (nav) nav.innerHTML = tabsHTML(current.page);
 });
 
+let ready = false;
+
 function route() {
+  if (!ready) return;
   current = { page: null, locked: null };
   const parts = location.hash.replace(/^#\/?/, '').split('/');
   const nav = parts[0] || '';
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === nav));
+  renderUserbox();
+  if (nav === 'admin') { mountAdmin(view); return; }               // 管理頁自己處理 Google 登入
+  if (!loggedIn()) { renderLogin(view, afterLogin); return; }
+  if (session.me && !session.me.nickname) { renderNickname(view, route); return; }
   if (nav === 'lab') renderLab(parts[1]);
   else if (nav === 'quiz') renderQuiz();
   else renderHome();
 }
 
+function afterLogin() {
+  startPolling(() => route());
+  route();
+}
+
 window.addEventListener('hashchange', route);
-route();
+
+// 啟動：確認登入身分、取得老師端設定
+view.innerHTML = '<div class="placeholder">載入中…</div>';
+init().then(() => {
+  ready = true;
+  startPolling(() => route());
+  route();
+});
