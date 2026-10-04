@@ -81,6 +81,9 @@ function renderLab(tab) {
     <nav class="subtabs" aria-label="互動專區">${tabsHTML(t.id)}</nav>
     <div id="lab-root"></div>`;
   const root = view.querySelector('#lab-root');
+  // 手機上分頁列可左右滑動：把目前的任務捲到看得到的位置
+  const nav = view.querySelector('.subtabs'), act = nav.querySelector('a.active');
+  if (act) nav.scrollLeft = act.offsetLeft - (nav.clientWidth - act.offsetWidth) / 2;
   if (locked) root.innerHTML = lockedHTML(t.name);
   else t.mount(root);
 }
