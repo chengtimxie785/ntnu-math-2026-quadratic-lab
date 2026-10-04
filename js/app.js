@@ -2,6 +2,8 @@
 
 import { mountPlot } from './plot.js';
 import { mountAK } from './ak.js';
+import { mountAxis } from './axis.js';
+import { mountFlip } from './flip.js';
 import { mountFold } from './foldlab.js';
 
 const view = document.getElementById('view');
@@ -39,9 +41,12 @@ layoutBtn.addEventListener('click', () => {
 });
 
 const LAB_TABS = [
-  { id: 'plot', name: '描點變曲線', mount: mountPlot },
-  { id: 'ak', name: 'a 與 k', mount: mountAK },
-  { id: 'fold', name: '對摺', mount: mountFold },
+  { id: 'plot', name: '① 描點畫圖', mount: mountPlot },
+  { id: 'axis', name: '② 找對稱軸', mount: mountAxis },
+  { id: 'a', name: '③ 拉拉看 a', mount: (r) => mountAK(r, 'a') },
+  { id: 'flip', name: '④ 上下翻', mount: mountFlip },
+  { id: 'k', name: '⑤ 拉拉看 k', mount: (r) => mountAK(r, 'k') },
+  { id: 'free', name: '自由探索', mount: mountFold },
 ];
 
 function renderHome() {
@@ -49,7 +54,7 @@ function renderHome() {
     <h1 style="font-size:1.4rem;margin:.2rem 0 .2rem">二次函數的意義與 y = ax² + k 的圖形</h1>
     <p style="color:var(--muted);margin:0 0 .6rem">康軒版 第 1 章 1-1 主題 1、主題 2</p>
     <div class="hub">
-      <a class="hub-card" href="#/lab/plot"><h2>互動專區</h2><p>搭配學習單：描點變曲線、a 與 k、對摺。</p></a>
+      <a class="hub-card" href="#/lab/plot"><h2>互動專區</h2><p>搭配學習單的五個任務：描點畫圖、找對稱軸、拉拉看 a、上下翻、拉拉看 k。</p></a>
       <a class="hub-card" href="#/quiz"><h2>測驗區</h2><p>分關卡挑戰，題目隨機出現。</p></a>
     </div>`;
 }

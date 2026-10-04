@@ -3,6 +3,7 @@
 
 import { Plane, svgEl } from './graph.js';
 import { fmt, fmtPoint } from './format.js';
+import { taskHeader } from './desmos-core.js';
 
 const f = (x) => x * x;
 const STEPS = [1, 0.5, 0.25, 0.1];   // 點距；最後一步之後畫出連續曲線
@@ -10,6 +11,7 @@ const XMAX = 3;
 
 export function mountPlot(root) {
   root.innerHTML = `
+    ${taskHeader('任務① 描點畫圖', '按「加更多點」，看看 y = x² 的點越來越多時，會連成什麼樣的圖形？', '三 1～3-(2)')}
     <div class="lab">
       <div class="stage" id="plot-stage"></div>
       <div class="panel">

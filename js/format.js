@@ -51,7 +51,7 @@ export function eqText(a, k) {
   const f = toFraction(Math.abs(a));
   let coef;
   if (approxEq(Math.abs(a), 1)) coef = '';
-  else if (f && f.d !== 1) coef = `${f.n}/${f.d}`;
+  else if (f && f.d !== 1) coef = `(${f.n}/${f.d})`;   // 加括號，避免被看成 1/(2x²)
   else coef = fmt(Math.abs(a));
   let s = `y = ${a < 0 ? MINUS : ''}${coef}x²`;
   if (!approxEq(k, 0)) s += (k > 0 ? ' + ' : ` ${MINUS} `) + fmt(Math.abs(k));

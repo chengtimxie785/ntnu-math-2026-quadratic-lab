@@ -64,11 +64,13 @@ export function makeCalc(el) {
 }
 
 // y = ax² + k 與參考線；a、k、式子都鎖定，學生只能拉、不能刪改
-export function baseExpressions(D) {
+// hideA／hideK：該參數固定、不出現在 Desmos 列表（例如任務三只拉 a，k 固定為 0）
+export function baseExpressions(D, { a = 1, k = 0, hideA = false, hideK = false } = {}) {
   return [
-    { id: 'a', latex: 'a=1', sliderBounds: { min: '-5', max: '5', step: '0.5' }, readonly: true },
-    { id: 'k', latex: 'k=0', sliderBounds: { min: '-10', max: '10', step: '1' }, readonly: true },
-    { id: 'f', latex: 'y=ax^{2}+k', color: COLORS.curve, lineWidth: 3.5, readonly: true },
+    { id: 'a', latex: `a=${a}`, sliderBounds: { min: '-5', max: '5', step: '0.5' }, readonly: true, secret: hideA },
+    { id: 'k', latex: `k=${k}`, sliderBounds: { min: '-10', max: '10', step: '1' }, readonly: true, secret: hideK },
+    // 隱藏的參數不出現在式子裡（例如任務④只寫 y = ax²；任務②只寫 y = x²）
+    { id: 'f', latex: `y=${hideA ? '' : 'a'}x^{2}${hideK ? '' : '+k'}`, color: COLORS.curve, lineWidth: 3.5, readonly: true },
     { id: 'ref', latex: 'y=x^{2}', color: COLORS.ref, lineStyle: D.Styles.DASHED, secret: true },
   ];
 }
@@ -125,24 +127,29 @@ export function renderEq(eqEl, msgEl, a, k) {
   }
 }
 
+// 任務標題列
+export function taskHeader(title, goal, ref) {
+  return `<div class="task"><h2>${title}</h2><p>${goal}</p>${ref ? `<span class="task-ref">對應學習單 ${ref}</span>` : ''}</div>`;
+}
+
 // ---------- 手機版自製拉桿 ----------
 // a 的拉桿跳過 0（a = 0 不是二次函數）；輸入框可打分數
 const A_VALUES = [];
 for (let v = -5; v <= 5; v += 0.5) if (v !== 0) A_VALUES.push(v);
 const K_MAX = 10;
 
-export function slidersHTML(p) {
-  return `
+export function slidersHTML(p, { a = true, k = true } = {}) {
+  return `${a ? `
     <div class="slider-row">
       <label for="${p}-a">a</label>
       <input type="range" id="${p}-a" min="0" max="${A_VALUES.length - 1}" step="1">
       <input class="numbox" id="${p}-a-in" inputmode="decimal" aria-label="輸入 a 的值">
-    </div>
+    </div>` : ''}${k ? `
     <div class="slider-row">
       <label for="${p}-k">k</label>
       <input type="range" id="${p}-k" min="-${K_MAX}" max="${K_MAX}" step="1">
       <input class="numbox" id="${p}-k-in" inputmode="decimal" aria-label="輸入 k 的值">
-    </div>`;
+    </div>` : ''}`;
 }
 
 export function fracStr(v) {
@@ -156,30 +163,34 @@ export function fracStr(v) {
 // 綁定自製拉桿；回傳 sync(a, k) 讓頁面在數值改變時更新拉桿位置
 export function bindSliders(root, p, calc, setMsg) {
   const $ = (s) => root.querySelector(s);
-  const aR = $(`#${p}-a`), kR = $(`#${p}-k`), aIn = $(`#${p}-a-in`), kIn = $(`#${p}-k-in`);
+  const aR = $(`#${p}-a`), kR = $(`#${p}-k`), aIn = $(`#${p}-a-in`), kIn = $(`#${p}-k-in`);   // 可能只有其中一組
   const setA = (v) => calc.setExpression({ id: 'a', latex: `a=${L(v)}` });
   const setK = (v) => calc.setExpression({ id: 'k', latex: `k=${L(v)}` });
-  aR.addEventListener('input', () => setA(A_VALUES[+aR.value]));
-  kR.addEventListener('input', () => setK(+kR.value));
-  aIn.addEventListener('change', () => {
+  aR?.addEventListener('input', () => setA(A_VALUES[+aR.value]));
+  kR?.addEventListener('input', () => setK(+kR.value));
+  aIn?.addEventListener('change', () => {
     const v = parseNum(aIn.value);
     if (!Number.isFinite(v)) { setMsg('請輸入數字，例如 2、-0.5 或 1/3。'); return; }
     if (approxEq(v, 0)) { setMsg('a = 0 時，y = 0·x² + k 化簡後沒有 x² 項，就不是二次函數了！'); return; }
     if (Math.abs(v) > 10) { setMsg('a 的絕對值請在 10 以內，圖形才看得清楚。'); return; }
     setA(v);
   });
-  kIn.addEventListener('change', () => {
+  kIn?.addEventListener('change', () => {
     const v = parseNum(kIn.value);
     if (!Number.isFinite(v) || Math.abs(v) > 20) { setMsg('k 請輸入 −20 到 20 之間的數。'); return; }
     setK(v);
   });
-  for (const el of [aIn, kIn]) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.blur(); });
+  for (const el of [aIn, kIn]) el?.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.blur(); });
   return function sync(a, k) {
-    let bi = 0;
-    A_VALUES.forEach((v, i) => { if (Math.abs(v - a) < Math.abs(A_VALUES[bi] - a)) bi = i; });
-    aR.value = bi;
-    kR.value = Math.max(-K_MAX, Math.min(K_MAX, Math.round(k)));
-    if (document.activeElement !== aIn) aIn.value = fracStr(a);
-    if (document.activeElement !== kIn) kIn.value = fmt(k);
+    if (aR) {
+      let bi = 0;
+      A_VALUES.forEach((v, i) => { if (Math.abs(v - a) < Math.abs(A_VALUES[bi] - a)) bi = i; });
+      aR.value = bi;
+      if (document.activeElement !== aIn) aIn.value = fracStr(a);
+    }
+    if (kR) {
+      kR.value = Math.max(-K_MAX, Math.min(K_MAX, Math.round(k)));
+      if (document.activeElement !== kIn) kIn.value = fmt(k);
+    }
   };
 }

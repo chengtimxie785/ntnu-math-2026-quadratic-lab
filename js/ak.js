@@ -1,25 +1,44 @@
-// 互動專區②：a 與 k（學習單第四部分表格與開口比較、第五部分）
-// 拉動 a、k 觀察 y = ax² + k 的圖形；可保留曲線比較開口大小
+// 任務③ 拉拉看 a（學習單第四部分表格、比較開口大小）
+// 任務⑤ 拉拉看 k（學習單第五部分）
+// mode = 'a'：只拉 a，k 固定為 0；mode = 'k'：a、k 都可以拉（第五部分最後一題要把 a 改成 −2）
 
-import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, isPhone, COLORS, L } from './desmos-core.js';
+import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, isPhone, COLORS, L } from './desmos-core.js';
 import { eqText, approxEq } from './format.js';
 import { mountSlider } from './slider.js';
 
 const PIN_CSS = ['var(--pin1)', 'var(--pin2)', 'var(--pin3)', 'var(--pin4)'];
 
-export function mountAK(root) {
-  return withDesmos(root, build, mountSlider);
+const TASKS = {
+  a: {
+    title: '任務③ 拉拉看 a',
+    goal: '拉動 a，觀察開口方向、開口大小，以及最高點或最低點在哪裡，完成學習單的表格。',
+    ref: '四（表格、比較開口大小）',
+    hint: '想比較開口大小時，先按「保留這條曲線」，再改變 a。',
+  },
+  k: {
+    title: '任務⑤ 拉拉看 k',
+    goal: '拉動 k，觀察圖形怎麼移動，最低點（或最高點）跑到哪裡。',
+    ref: '五',
+    hint: '先保留 y = x² 這條曲線，再改變 k，比較兩條曲線的位置。',
+  },
+};
+
+export function mountAK(root, mode = 'a') {
+  return withDesmos(root, (r) => build(r, mode), mountSlider);
 }
 
-function build(root) {
+function build(root, mode) {
   const phone = isPhone();
+  const t = TASKS[mode];
+  const onlyA = mode === 'a';
   root.innerHTML = `
+    ${taskHeader(t.title, t.goal, t.ref)}
     <div class="lab">
       <div class="stage desmos-stage"><div id="ak-calc" class="desmos-box"></div></div>
       <div class="panel">
         <div class="card">
           <div class="eq" id="ak-eq"></div>
-          ${phone ? slidersHTML('ak') : '<p class="hint">拉動左側 Desmos 的 a、k 拉桿，觀察圖形怎麼變化。</p>'}
+          ${phone ? slidersHTML('ak', { a: true, k: !onlyA }) : `<p class="hint">拉動左側 Desmos 的${onlyA ? ' a ' : ' a、k '}拉桿。</p>`}
           <div class="msg" id="ak-msg" aria-live="polite"></div>
           <div class="row" style="margin-top:.6rem">
             <button type="button" class="btn" id="ak-pin">保留這條曲線</button>
@@ -27,18 +46,18 @@ function build(root) {
             <button type="button" class="btn" id="ak-reset">重設</button>
           </div>
           <div class="chips" id="ak-pins"></div>
-          <p class="hint">先按「保留這條曲線」留下目前的圖形，再改變 a，就能比較開口大小。</p>
+          <p class="hint">${t.hint}</p>
         </div>
       </div>
     </div>`;
   const $ = (s) => root.querySelector(s);
   const D = window.Desmos;
   const calc = makeCalc($('#ak-calc'));
-  calc.setExpressions(baseExpressions(D));
+  calc.setExpressions(baseExpressions(D, { hideK: onlyA }));
   const st = { a: 1, k: 0, ref: true, pins: [], seq: 0, hy: 17 };
   lifecycle(root, calc, () => fitSquare(calc, 11, st.hy));
   fitSquare(calc);
-  const setMsg = (t) => { const m = $('#ak-msg'); m.textContent = t; m.className = 'msg bad'; };
+  const setMsg = (m) => { const el = $('#ak-msg'); el.textContent = m; el.className = 'msg bad'; };
   const sync = phone ? bindSliders(root, 'ak', calc, setMsg) : () => {};
 
   function refresh() {

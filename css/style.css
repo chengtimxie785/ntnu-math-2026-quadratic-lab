@@ -94,8 +94,16 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .hub-card p { margin: 0; color: var(--muted); font-size: .92rem; }
 .hub-card.disabled { opacity: .55; pointer-events: none; }
 
-/* ===== 子分頁 ===== */
+/* ===== 子分頁（任務列；手機上可左右滑動） ===== */
 .subtabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 12px; }
+:root[data-layout="phone"] .subtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin: 0 -12px 10px; padding: 0 12px; }
+:root[data-layout="phone"] .subtabs a { white-space: nowrap; flex: none; }
+
+/* 任務標題 */
+.task { margin: 0 0 12px; }
+.task h2 { margin: 0; font-size: 1.15rem; }
+.task p { margin: .15rem 0 0; }
+.task-ref { display: inline-block; margin-top: .3rem; font-size: .8rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 .6rem; }
 .subtabs a {
   padding: .35rem .9rem; border: 1px solid var(--line); border-radius: 8px;
   color: var(--muted); text-decoration: none; background: var(--bg);
