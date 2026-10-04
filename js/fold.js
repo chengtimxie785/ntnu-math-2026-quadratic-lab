@@ -14,24 +14,9 @@ import { fmt, fmtPoint, parseNum, approxEq } from './format.js';
 
 const STEP = 0.5;
 
-export class FoldTool {
-  constructor(plane, panel, scene, { horizontalHint = '' } = {}) {
-    this.plane = plane;
-    this.scene = scene;
-    this.horizontalHint = horizontalHint;
-    this.orient = null;   // 'v' | 'h' | null
-    this.c = 0;
-    this.sel = null;      // {x, y}
-    this.ghost = null;    // {fn, points, orient, c, showCurve}
-    this.anim = null;
-    this.foldMsg = { text: '', cls: '' };
-    this.buildPanel(panel);
-    this.bindPointer();
-  }
-
-  // ---------- 面板 ----------
-  buildPanel(panel) {
-    panel.innerHTML = `
+// 對摺工具的面板（SVG 版與 Desmos 版共用）
+export function foldPanelHTML(pickHint = '也可以直接點圖形上的點。') {
+  return `
       <h3>對摺工具</h3>
       <div class="row" role="group" aria-label="選擇摺線方向">
         <button type="button" class="btn" data-o="v">垂直摺線 x = c</button>
@@ -50,13 +35,34 @@ export class FoldTool {
         </label>
         <button type="button" class="btn fold-pick">選這個點</button>
       </div>
-      <p class="hint">也可以直接點圖形上的點。</p>
+      <p class="hint">${pickHint}</p>
       <div class="msg fold-selmsg" aria-live="polite"></div>
       <div class="row" style="margin-top:.6rem">
         <button type="button" class="btn primary fold-go" disabled>對摺！</button>
         <button type="button" class="btn fold-clear">清除</button>
       </div>
       <div class="msg fold-msg" aria-live="polite"></div>`;
+}
+
+
+export class FoldTool {
+  constructor(plane, panel, scene, { horizontalHint = '' } = {}) {
+    this.plane = plane;
+    this.scene = scene;
+    this.horizontalHint = horizontalHint;
+    this.orient = null;   // 'v' | 'h' | null
+    this.c = 0;
+    this.sel = null;      // {x, y}
+    this.ghost = null;    // {fn, points, orient, c, showCurve}
+    this.anim = null;
+    this.foldMsg = { text: '', cls: '' };
+    this.buildPanel(panel);
+    this.bindPointer();
+  }
+
+  // ---------- 面板 ----------
+  buildPanel(panel) {
+    panel.innerHTML = foldPanelHTML();
     this.$ = (s) => panel.querySelector(s);
     this.oBtns = [...panel.querySelectorAll('[data-o]')];
     this.oBtns.forEach((b) => b.addEventListener('click', () => this.setOrient(b.dataset.o)));

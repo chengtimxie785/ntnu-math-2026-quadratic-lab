@@ -1,7 +1,7 @@
 // 路由與全域設定（深淺色、大螢幕模式）
 
 import { mountPlot } from './plot.js';
-import { mountSlider } from './slider.js';
+import { mountDesmosLab } from './desmos-lab.js';
 
 const view = document.getElementById('view');
 const root = document.documentElement;
@@ -29,7 +29,7 @@ bigBtn.addEventListener('click', () => setBig(!root.classList.contains('big')));
 
 const LAB_TABS = [
   { id: 'plot', name: '描點變曲線', mount: mountPlot },
-  { id: 'slider', name: '拉桿實驗室', mount: mountSlider },
+  { id: 'slider', name: '拉桿實驗室', mount: mountDesmosLab },
 ];
 
 function renderHome() {
