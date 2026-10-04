@@ -2,8 +2,7 @@
 // 對應課本 p.10～12：先描 7 個整數點，再逐步加密，最後連成平滑曲線
 
 import { Plane, svgEl } from './graph.js';
-import { FoldTool } from './fold.js';
-import { fmt } from './format.js';
+import { fmt, fmtPoint } from './format.js';
 
 const f = (x) => x * x;
 const STEPS = [1, 0.5, 0.25, 0.1];   // 點距；最後一步之後畫出連續曲線
@@ -24,7 +23,6 @@ export function mountPlot(root) {
           </div>
           <div class="msg" id="plot-msg" aria-live="polite"></div>
         </div>
-        <div class="card" id="plot-fold"></div>
       </div>
     </div>`;
 
@@ -68,8 +66,23 @@ export function mountPlot(root) {
     },
   };
 
-  const fold = new FoldTool(plane, root.querySelector('#plot-fold'), scene);
   const $ = (s) => root.querySelector(s);
+  let sel = null;
+
+  // 點一下圖形上的點，顯示坐標
+  plane.svg.addEventListener('pointerdown', (e) => {
+    sel = scene.pick(plane.toMath(e));
+    drawSel();
+  });
+  function drawSel() {
+    plane.clear('marks');
+    if (!sel) return;
+    if (!st.curve && !points().some((p) => Math.abs(p.x - sel.x) < 1e-9)) { sel = null; return; }
+    const u = plane.unit;
+    svgEl('circle', { class: 'sel', cx: plane.X(sel.x), cy: plane.Y(sel.y), r: u * 0.2 }, plane.layers.marks);
+    const t = svgEl('text', { class: 'lbl', x: plane.X(sel.x) + (sel.x < 0 ? -u * 0.25 : u * 0.25), y: plane.Y(sel.y) - u * 0.25, 'font-size': plane.fontSize, 'text-anchor': sel.x < 0 ? 'end' : 'start' }, plane.layers.marks);
+    t.textContent = fmtPoint(sel);
+  }
 
   function draw() {
     plane.clear('curve');
@@ -95,10 +108,10 @@ export function mountPlot(root) {
     $('#plot-line').disabled = st.curve;
     $('#plot-line').setAttribute('aria-pressed', String(st.line && !st.curve));
     const msg = $('#plot-msg');
-    if (st.curve) msg.textContent = '點多到數不完時，就連成一條平滑的曲線，這就是 y = x² 的圖形。';
+    if (st.curve) msg.textContent = '點多到數不完時，就連成一條平滑的曲線，這就是 y = x² 的圖形。點一下圖形上的點可以看坐標；接著到「對摺」分頁找找看它的對稱軸。';
     else if (st.line && st.level === 0) msg.textContent = '只有 7 個點時，用線段連起來會有明顯的折角。點變多之後會怎樣呢？';
     else msg.textContent = '';
-    fold.render();
+    drawSel();
   }
 
   $('#plot-more').addEventListener('click', () => {
@@ -109,7 +122,7 @@ export function mountPlot(root) {
   $('#plot-line').addEventListener('click', () => { st.line = !st.line; draw(); });
   $('#plot-reset').addEventListener('click', () => {
     Object.assign(st, { level: 0, curve: false, line: false, prev: new Set() });
-    fold.clearAll();
+    sel = null;
     draw();
   });
 

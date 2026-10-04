@@ -1,7 +1,8 @@
 // 路由與全域設定（深淺色、大螢幕模式）
 
 import { mountPlot } from './plot.js';
-import { mountDesmosLab } from './desmos-lab.js';
+import { mountAK } from './ak.js';
+import { mountFold } from './foldlab.js';
 
 const view = document.getElementById('view');
 const root = document.documentElement;
@@ -21,15 +22,26 @@ document.getElementById('btn-theme').addEventListener('click', () => {
   store('qlab-theme', root.dataset.theme);
 });
 
-// 大螢幕模式：放大字體與控制項
-const bigBtn = document.getElementById('btn-big');
-const setBig = (on) => { root.classList.toggle('big', on); bigBtn.setAttribute('aria-pressed', String(on)); store('qlab-big', on ? '1' : '0'); };
-setBig(store('qlab-big') === '1');
-bigBtn.addEventListener('click', () => setBig(!root.classList.contains('big')));
+// 版面：手機版（單欄、圖在上）／電腦版（圖在左、操作在右，給觸控大螢幕用）
+// 預設依螢幕寬度自動判斷，使用者切換後記住選擇
+const layoutBtn = document.getElementById('btn-layout');
+function applyLayout(mode, remount) {
+  root.dataset.layout = mode;
+  layoutBtn.textContent = mode === 'phone' ? '切換到電腦版' : '切換到手機版';
+  if (remount) route();
+}
+const saved = store('qlab-layout');
+applyLayout(saved === 'phone' || saved === 'desktop' ? saved : (window.innerWidth < 900 ? 'phone' : 'desktop'), false);
+layoutBtn.addEventListener('click', () => {
+  const next = root.dataset.layout === 'phone' ? 'desktop' : 'phone';
+  store('qlab-layout', next);
+  applyLayout(next, true);
+});
 
 const LAB_TABS = [
   { id: 'plot', name: '描點變曲線', mount: mountPlot },
-  { id: 'slider', name: '拉桿實驗室', mount: mountDesmosLab },
+  { id: 'ak', name: 'a 與 k', mount: mountAK },
+  { id: 'fold', name: '對摺', mount: mountFold },
 ];
 
 function renderHome() {
@@ -37,7 +49,7 @@ function renderHome() {
     <h1 style="font-size:1.4rem;margin:.2rem 0 .2rem">二次函數的意義與 y = ax² + k 的圖形</h1>
     <p style="color:var(--muted);margin:0 0 .6rem">康軒版 第 1 章 1-1 主題 1、主題 2</p>
     <div class="hub">
-      <a class="hub-card" href="#/lab/plot"><h2>互動專區</h2><p>搭配學習單：描點變曲線、拉桿實驗室、對摺工具。</p></a>
+      <a class="hub-card" href="#/lab/plot"><h2>互動專區</h2><p>搭配學習單：描點變曲線、a 與 k、對摺。</p></a>
       <a class="hub-card" href="#/quiz"><h2>測驗區</h2><p>分關卡挑戰，題目隨機出現。</p></a>
     </div>`;
 }
