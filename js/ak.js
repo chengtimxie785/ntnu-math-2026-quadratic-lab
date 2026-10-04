@@ -1,7 +1,7 @@
 // 互動專區②：a 與 k（學習單第四部分表格與開口比較、第五部分）
 // 拉動 a、k 觀察 y = ax² + k 的圖形；可保留曲線比較開口大小
 
-import { withDesmos, makeCalc, baseExpressions, fitSquare, watch, lifecycle, renderEq, slidersHTML, bindSliders, isPhone, COLORS, L } from './desmos-core.js';
+import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, isPhone, COLORS, L } from './desmos-core.js';
 import { eqText, approxEq } from './format.js';
 import { mountSlider } from './slider.js';
 
@@ -35,10 +35,9 @@ function build(root) {
   const D = window.Desmos;
   const calc = makeCalc($('#ak-calc'));
   calc.setExpressions(baseExpressions(D));
-  lifecycle(root, calc, () => fitSquare(calc));
+  const st = { a: 1, k: 0, ref: true, pins: [], seq: 0, hy: 17 };
+  lifecycle(root, calc, () => fitSquare(calc, 11, st.hy));
   fitSquare(calc);
-
-  const st = { a: 1, k: 0, ref: true, pins: [], seq: 0 };
   const setMsg = (t) => { const m = $('#ak-msg'); m.textContent = t; m.className = 'msg bad'; };
   const sync = phone ? bindSliders(root, 'ak', calc, setMsg) : () => {};
 
@@ -49,7 +48,12 @@ function build(root) {
     $('#ak-ref').setAttribute('aria-pressed', String(st.ref));
   }
   watch(calc, 'a', (v) => { st.a = v; refresh(); });
-  watch(calc, 'k', (v) => { st.k = v; refresh(); });
+  watch(calc, 'k', (v) => {
+    st.k = v;
+    const h = neededHeight(v);
+    if (h !== st.hy) { st.hy = h; fitSquare(calc, 11, h); }
+    refresh();
+  });
 
   function drawPins() {
     const chips = $('#ak-pins');
@@ -83,7 +87,7 @@ function build(root) {
     for (const p of st.pins) calc.removeExpression({ id: p.id });
     st.pins = []; st.ref = true;
     calc.setExpressions([{ id: 'a', latex: 'a=1' }, { id: 'k', latex: 'k=0' }, { id: 'ref', hidden: false }]);
-    fitSquare(calc); drawPins(); refresh();
+    st.hy = 17; fitSquare(calc); drawPins(); refresh();
   });
 
   refresh();

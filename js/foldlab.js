@@ -1,7 +1,7 @@
 // 互動專區③：對摺（學習單第三部分 3-(3)(4)、第四部分的對摺題）
 // 拖曳或輸入摺線 x = c / y = c，選點看對摺後落在哪裡，播放對摺動畫並判斷是否重合
 
-import { withDesmos, makeCalc, baseExpressions, fitSquare, watch, lifecycle, renderEq, slidersHTML, bindSliders, isPhone, COLORS, L } from './desmos-core.js';
+import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, isPhone, COLORS, L } from './desmos-core.js';
 import { foldPanelHTML } from './fold.js';
 import { eqText, fmt, fmtPoint, parseNum, approxEq } from './format.js';
 import { mountSlider } from './slider.js';
@@ -40,11 +40,11 @@ function build(root) {
   ]);
 
   const st = {
-    a: 1, k: 0, orient: null, c: 0, sel: false, p: 2, top: 8,
+    a: 1, k: 0, orient: null, c: 0, sel: false, p: 2, top: 8, hy: 17,
     ghost: null, foldMsg: { text: '', cls: '' }, animating: false,
   };
   st.top = fitSquare(calc);
-  lifecycle(root, calc, () => { st.top = fitSquare(calc); drawFold(); });
+  lifecycle(root, calc, () => { st.top = fitSquare(calc, 11, st.hy); drawFold(); });
 
   const setMsg = (t) => { const m = $('#fd-msg'); m.textContent = t; m.className = 'msg bad'; };
   const sync = phone ? bindSliders(root, 'fd', calc, setMsg) : () => {};
@@ -167,6 +167,10 @@ function build(root) {
   const onVar = (key) => (v) => {
     if (key === 'c' && v !== st.c && !st.animating) { st.ghost = null; st.foldMsg = { text: '', cls: '' }; drawGhost(); }
     st[key] = v;
+    if (key === 'k') {
+      const h = neededHeight(v);
+      if (h !== st.hy) { st.hy = h; st.top = fitSquare(calc, 11, h); lastHit = undefined; }
+    }
     const hit = st.sel && st.orient ? mirrorHit() : null;
     if (hit !== lastHit) { lastHit = hit; drawFold(); }   // 對稱點實心／空心切換
     refresh();

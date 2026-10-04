@@ -66,8 +66,8 @@ export function makeCalc(el) {
 // y = ax² + k 與參考線；a、k、式子都鎖定，學生只能拉、不能刪改
 export function baseExpressions(D) {
   return [
-    { id: 'a', latex: 'a=1', sliderBounds: { min: '-3', max: '3', step: '0.5' }, readonly: true },
-    { id: 'k', latex: 'k=0', sliderBounds: { min: '-6', max: '6', step: '1' }, readonly: true },
+    { id: 'a', latex: 'a=1', sliderBounds: { min: '-5', max: '5', step: '0.5' }, readonly: true },
+    { id: 'k', latex: 'k=0', sliderBounds: { min: '-10', max: '10', step: '1' }, readonly: true },
     { id: 'f', latex: 'y=ax^{2}+k', color: COLORS.curve, lineWidth: 3.5, readonly: true },
     { id: 'ref', latex: 'y=x^{2}', color: COLORS.ref, lineStyle: D.Styles.DASHED, secret: true },
   ];
@@ -82,6 +82,9 @@ export function fitSquare(calc, wx = 11, hy = 17) {
   calc.setMathBounds({ left: -hw, right: hw, bottom: -hh, top: hh });
   return hh;
 }
+
+// k 很大時圖形會跑出畫面：依 k 決定至少要看到的 y 範圍（上下各留 3 單位）
+export const neededHeight = (k) => Math.max(17, 2 * Math.ceil(Math.abs(k)) + 6);
 
 // 觀察 Desmos 內的變數
 export function watch(calc, name, cb) {
@@ -124,7 +127,9 @@ export function renderEq(eqEl, msgEl, a, k) {
 
 // ---------- 手機版自製拉桿 ----------
 // a 的拉桿跳過 0（a = 0 不是二次函數）；輸入框可打分數
-const A_VALUES = [-3, -2.5, -2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2, 2.5, 3];
+const A_VALUES = [];
+for (let v = -5; v <= 5; v += 0.5) if (v !== 0) A_VALUES.push(v);
+const K_MAX = 10;
 
 export function slidersHTML(p) {
   return `
@@ -135,7 +140,7 @@ export function slidersHTML(p) {
     </div>
     <div class="slider-row">
       <label for="${p}-k">k</label>
-      <input type="range" id="${p}-k" min="-6" max="6" step="1">
+      <input type="range" id="${p}-k" min="-${K_MAX}" max="${K_MAX}" step="1">
       <input class="numbox" id="${p}-k-in" inputmode="decimal" aria-label="輸入 k 的值">
     </div>`;
 }
@@ -165,7 +170,7 @@ export function bindSliders(root, p, calc, setMsg) {
   });
   kIn.addEventListener('change', () => {
     const v = parseNum(kIn.value);
-    if (!Number.isFinite(v) || Math.abs(v) > 7) { setMsg('k 請輸入 −7 到 7 之間的數。'); return; }
+    if (!Number.isFinite(v) || Math.abs(v) > 20) { setMsg('k 請輸入 −20 到 20 之間的數。'); return; }
     setK(v);
   });
   for (const el of [aIn, kIn]) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.blur(); });
@@ -173,7 +178,7 @@ export function bindSliders(root, p, calc, setMsg) {
     let bi = 0;
     A_VALUES.forEach((v, i) => { if (Math.abs(v - a) < Math.abs(A_VALUES[bi] - a)) bi = i; });
     aR.value = bi;
-    kR.value = Math.max(-6, Math.min(6, Math.round(k)));
+    kR.value = Math.max(-K_MAX, Math.min(K_MAX, Math.round(k)));
     if (document.activeElement !== aIn) aIn.value = fracStr(a);
     if (document.activeElement !== kIn) kIn.value = fmt(k);
   };
