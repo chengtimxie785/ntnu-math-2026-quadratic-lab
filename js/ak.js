@@ -45,8 +45,14 @@ function build(root, mode) {
             <button type="button" class="btn" id="ak-ref" aria-pressed="true">y = x² 參考線</button>
             <button type="button" class="btn" id="ak-reset">重設</button>
           </div>
-          <div class="chips" id="ak-pins"></div>
           <p class="hint">${t.hint}</p>
+          <div class="pins" id="ak-pinbox" hidden>
+            <div class="pins-head">
+              <strong>保留的曲線</strong>
+              <button type="button" class="btn small" id="ak-clearpins">全部清除</button>
+            </div>
+            <ul class="pin-list" id="ak-pins"></ul>
+          </div>
         </div>
       </div>
     </div>`;
@@ -74,23 +80,32 @@ function build(root, mode) {
     refresh();
   });
 
+  // 保留的曲線清單：每條一列（色線＋函數式＋移除），可單獨移除或全部清除
   function drawPins() {
-    const chips = $('#ak-pins');
-    chips.innerHTML = '';
+    const list = $('#ak-pins');
+    list.innerHTML = '';
+    $('#ak-pinbox').hidden = st.pins.length === 0;
     st.pins.forEach((p, i) => {
-      const c = document.createElement('span');
-      c.className = 'chip';
-      c.style.color = PIN_CSS[i % 4];
-      c.innerHTML = `${eqText(p.a, p.k)}<button type="button" aria-label="移除 ${eqText(p.a, p.k)}">×</button>`;
-      c.querySelector('button').addEventListener('click', () => {
+      const li = document.createElement('li');
+      li.className = 'pin-row';
+      li.innerHTML = `<span class="pin-swatch" style="background:${PIN_CSS[i % 4]}"></span>
+        <span class="mono pin-eq">${eqText(p.a, p.k)}</span>
+        <button type="button" class="btn small">移除</button>`;
+      li.querySelector('button').setAttribute('aria-label', `移除 ${eqText(p.a, p.k)}`);
+      li.querySelector('button').addEventListener('click', () => {
         calc.removeExpression({ id: p.id });
         st.pins.splice(i, 1);
         st.pins.forEach((q, j) => calc.setExpression({ id: q.id, color: COLORS.pins[j % 4] }));
         drawPins(); refresh();
       });
-      chips.appendChild(c);
+      list.appendChild(li);
     });
   }
+  function clearPins() {
+    for (const p of st.pins) calc.removeExpression({ id: p.id });
+    st.pins = [];
+  }
+  $('#ak-clearpins').addEventListener('click', () => { clearPins(); drawPins(); refresh(); });
   $('#ak-pin').addEventListener('click', () => {
     const id = `pin${st.seq++}`;
     calc.setExpression({ id, latex: `y=${L(st.a)}x^{2}+${L(st.k)}`, color: COLORS.pins[st.pins.length % 4], lineWidth: 2.5, secret: true });
@@ -103,8 +118,7 @@ function build(root, mode) {
     refresh();
   });
   $('#ak-reset').addEventListener('click', () => {
-    for (const p of st.pins) calc.removeExpression({ id: p.id });
-    st.pins = []; st.ref = true;
+    clearPins(); st.ref = true;
     calc.setExpressions([{ id: 'a', latex: 'a=1' }, { id: 'k', latex: 'k=0' }, { id: 'ref', hidden: false }]);
     st.hy = 17; fitSquare(calc); drawPins(); refresh();
   });

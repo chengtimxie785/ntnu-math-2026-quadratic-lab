@@ -44,17 +44,16 @@ export class DesmosFold {
     const o = this.o;
     const orientBtns = o.orients.length > 1 ? `
       <div class="row" role="group" aria-label="選擇摺線方向">
-        <button type="button" class="btn" data-o="v">垂直摺線 x = c</button>
-        <button type="button" class="btn" data-o="h">水平摺線 y = c</button>
+        <button type="button" class="btn" data-o="v">垂直摺線</button>
+        <button type="button" class="btn" data-o="h">水平摺線</button>
       </div>` : '';
     const cCtrl = o.lockC === null ? `
       <div class="row" style="margin-top:.5rem">
-        <span class="fold-eqlabel mono"></span>
-        <label class="row" style="gap:.3rem">c =
-          <input class="numbox small fold-c" inputmode="decimal" value="0" aria-label="摺線位置 c">
+        <label class="row" style="gap:.3rem">摺線：<span class="mono fold-var">x</span> =
+          <input class="numbox small fold-c" inputmode="decimal" value="0" aria-label="摺線的位置">
         </label>
       </div>
-      <p class="hint">可以直接在圖上拖曳橘色摺線（拖橘色圓點），或輸入 c 的值。</p>` : '';
+      <p class="hint fold-chint">拖曳圖上的橘色圓點來移動摺線，或直接在上面輸入數字。</p>` : '';
     o.panel.insertAdjacentHTML('beforeend', `
       ${orientBtns}${cCtrl}
       <div class="row" style="margin-top:.6rem">
@@ -218,8 +217,11 @@ export class DesmosFold {
     const cIn = q('.fold-c');
     if (cIn) {
       cIn.disabled = !st.orient;
-      if (document.activeElement !== cIn) cIn.value = fmt(st.c);
-      q('.fold-eqlabel').textContent = st.orient ? `摺線：${st.orient === 'v' ? 'x' : 'y'} = ${fmt(st.c)}` : '摺線：未選擇';
+      if (document.activeElement !== cIn) cIn.value = st.orient ? fmt(st.c) : '';
+      q('.fold-var').textContent = st.orient === 'h' ? 'y' : 'x';
+      q('.fold-chint').textContent = st.orient
+        ? '拖曳圖上的橘色圓點來移動摺線，或直接在上面輸入數字。'
+        : '先選「垂直摺線」或「水平摺線」。';
     }
     q('.fold-go').disabled = !st.orient || st.animating;
 

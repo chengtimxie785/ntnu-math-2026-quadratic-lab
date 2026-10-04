@@ -19,16 +19,15 @@ export function foldPanelHTML(pickHint = '也可以直接點圖形上的點。')
   return `
       <h3>對摺工具</h3>
       <div class="row" role="group" aria-label="選擇摺線方向">
-        <button type="button" class="btn" data-o="v">垂直摺線 x = c</button>
-        <button type="button" class="btn" data-o="h">水平摺線 y = c</button>
+        <button type="button" class="btn" data-o="v">垂直摺線</button>
+        <button type="button" class="btn" data-o="h">水平摺線</button>
       </div>
       <div class="row" style="margin-top:.5rem">
-        <span class="fold-eqlabel mono">摺線：未選擇</span>
-        <label class="row" style="gap:.3rem">c =
-          <input class="numbox small fold-c" inputmode="decimal" value="0" disabled aria-label="摺線位置 c">
+        <label class="row" style="gap:.3rem">摺線：<span class="mono fold-var">x</span> =
+          <input class="numbox small fold-c" inputmode="decimal" value="" disabled aria-label="摺線的位置">
         </label>
       </div>
-      <p class="hint">可以直接在圖上拖曳橘色摺線，或輸入 c 的值。</p>
+      <p class="hint">可以直接在圖上拖曳橘色摺線，或在上面輸入數字。</p>
       <div class="row" style="margin-top:.6rem">
         <label class="row" style="gap:.3rem">選點：x =
           <input class="numbox small fold-px" inputmode="decimal" placeholder="例 2" aria-label="依 x 值選點">
@@ -245,8 +244,8 @@ export class FoldTool {
     this.oBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.o === this.orient)));
     const cIn = this.$('.fold-c');
     cIn.disabled = !this.orient;
-    if (document.activeElement !== cIn) cIn.value = fmt(this.c);
-    this.$('.fold-eqlabel').textContent = this.orient ? `摺線：${this.orient === 'v' ? 'x' : 'y'} = ${fmt(this.c)}` : '摺線：未選擇';
+    if (document.activeElement !== cIn) cIn.value = this.orient ? fmt(this.c) : '';
+    this.$('.fold-var').textContent = this.orient === 'h' ? 'y' : 'x';
     this.$('.fold-go').disabled = !this.orient;
 
     // 選取點跟著圖形移動

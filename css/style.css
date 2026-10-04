@@ -180,7 +180,16 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .msg.mirror { border-color: var(--mirror); }
 .msg:empty { display: none; }
 
-/* 保留的曲線 */
+/* 保留的曲線清單 */
+.pins { margin-top: .7rem; border-top: 1px solid var(--line); padding-top: .6rem; }
+.pins-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.pin-list { list-style: none; margin: .4rem 0 0; padding: 0; display: grid; gap: .35rem; }
+.pin-row { display: flex; align-items: center; gap: .6rem; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .4rem .3rem .6rem; }
+.pin-swatch { width: 1.6rem; height: 4px; border-radius: 2px; flex: none; }
+.pin-eq { flex: 1; }
+.btn.small { min-height: 2.25rem; padding: .25rem .75rem; font-size: .9rem; }
+
+/* 保留的曲線（SVG 備用版用） */
 .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
 .chip {
   display: inline-flex; align-items: center; gap: .3rem;
