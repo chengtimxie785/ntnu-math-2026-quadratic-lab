@@ -2,6 +2,7 @@
 
 import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, isPhone } from './desmos-core.js';
 import { DesmosFold } from './desmos-fold.js';
+import { eqText } from './format.js';
 import { mountSlider } from './slider.js';
 
 export function mountFold(root) {
@@ -21,6 +22,9 @@ function build(root) {
           <div class="eq" id="fd-eq"></div>
           ${phone ? slidersHTML('fd') : '<p class="hint">用左側 Desmos 的 a、k 拉桿改變圖形。</p>'}
           <div class="msg" id="fd-msg" aria-live="polite"></div>
+          <div class="row" style="margin-top:.6rem">
+            <button type="button" class="btn" id="fd-reset">全部重設</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -30,7 +34,10 @@ function build(root) {
   calc.setExpressions(baseExpressions(D).filter((e) => e.id !== 'ref'));
 
   const st = { a: 1, k: 0, hy: 17 };
-  const fold = new DesmosFold(calc, { panel: $('#fd-fold') });
+  const fold = new DesmosFold(calc, {
+    panel: $('#fd-fold'),
+    onMatch: () => ({ text: `✓ 實線和虛線完全重合了！現在的圖形是 ${eqText(fold.st.a, fold.st.k)}。`, cls: 'ok' }),
+  });
   fold.setTop(fitSquare(calc));
   lifecycle(root, calc, () => fold.setTop(fitSquare(calc, 11, st.hy)));
 
@@ -43,6 +50,13 @@ function build(root) {
     const h = neededHeight(v);
     if (h !== st.hy) { st.hy = h; fold.setTop(fitSquare(calc, 11, h)); }
     refresh();
+  });
+  // 全部重設：圖形回到 y = x²，清掉摺線、選點、虛線
+  $('#fd-reset').addEventListener('click', () => {
+    fold.clear();
+    fold.setOrient(null);
+    calc.setExpressions([{ id: 'a', latex: 'a=1' }, { id: 'k', latex: 'k=0' }]);
+    st.hy = 17; fold.setTop(fitSquare(calc));
   });
   refresh();
   fold.refresh();

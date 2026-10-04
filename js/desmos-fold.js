@@ -238,8 +238,7 @@ export class DesmosFold {
           if (st.orient === 'v') t += `兩點的 y 坐標一樣，對稱地分在${this.lineSp()}的兩側。`;
           cls = 'ok';
         } else {
-          t = `${fmtPoint(P)} 對摺後會跑到 ${fmtPoint(M)}，但這個點不在圖形上`;
-          t += st.orient === 'v' ? `，所以${this.lineSp()}不是對稱軸。` : '。';
+          t = `${fmtPoint(P)} 對摺後會跑到 ${fmtPoint(M)}，但這個點不在圖形上，所以${this.lineSp()}不是對稱軸。`;
           cls = 'bad';
         }
       }
@@ -258,7 +257,14 @@ export class DesmosFold {
 
   onVar(key, val) {
     const st = this.st;
-    if (key === 'c' && val !== st.c && !st.animating) { st.ghost = null; st.foldMsg = { text: '', cls: '' }; this.drawGhost(); }
+    const changed = val !== st[key];
+    if (changed && !st.animating && st.ghost) {
+      // 摺線移動：結果失效。垂直對摺後改 a、k：虛線是舊圖形的，也一併清掉
+      // （水平對摺後改 a、k 是「讓實線和虛線重合」的活動，要保留虛線）
+      if (key === 'c' || ((key === 'a' || key === 'k') && st.ghost.orient === 'v')) {
+        st.ghost = null; st.foldMsg = { text: '', cls: '' }; this.drawGhost();
+      }
+    }
     st[key] = val;
     const hit = st.sel && st.orient ? this.mirrorHit() : null;
     if (hit !== this.lastHit) { this.lastHit = hit; this.draw(); }   // 對稱點實心／空心切換
@@ -299,7 +305,7 @@ export class DesmosFold {
           ? { text: `✓ 對摺後完全重合！${this.lineSp()}是這個圖形的對稱軸。`, cls: 'ok' }
           : { text: `✗ 對摺後兩邊沒有重合，${this.lineSp()}不是對稱軸。換個位置再試試看。`, cls: 'bad' };
       } else {
-        msg = { text: '圖形翻過去之後，畫成了橘色虛線。', cls: 'mirror' };
+        msg = { text: `圖形沿著${this.lineSp()}翻過去，變成橘色虛線。試著拉動 a、k，看能不能讓實線和虛線完全重合。`, cls: 'mirror' };
       }
       const custom = this.o.onResult?.({ ...g0, same });
       st.foldMsg = custom || msg;
