@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>二次函數互動平台</title>
+  <meta name="description" content="康軒版 1-1 二次函數的意義與 y=ax²+k 的圖形：互動專區與測驗區">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">二次函數互動平台</a>
+    <nav class="mainnav" aria-label="主選單">
+      <a href="#/lab/plot" data-nav="lab">互動專區</a>
+      <a href="#/quiz" data-nav="quiz">測驗區</a>
+    </nav>
+    <div class="topbar-tools">
+      <button type="button" id="btn-big" class="ghost-btn" aria-pressed="false" title="放大字體與控制項（觸控大螢幕用）">大螢幕</button>
+      <button type="button" id="btn-theme" class="ghost-btn" title="切換深淺色">深淺色</button>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
