@@ -9,15 +9,16 @@
 //   goLabel      對摺按鈕文字
 //   onResult(r)  對摺動畫結束時呼叫，r = {orient, c, same}；可回傳 {text, cls} 取代預設訊息
 //   onMatch()    水平對摺後，目前圖形和虛線重合時呼叫；可回傳 {text, cls} 當作重合訊息
+//   ghostEq()    回傳 true 時，水平對摺後在訊息中顯示虛線的函數式（由老師端開關控制）
 
 import { COLORS, L, watch } from './desmos-core.js';
-import { fmt, fmtPoint, parseNum, approxEq } from './format.js';
+import { fmt, fmtPoint, parseNum, approxEq, eqText } from './format.js';
 
 export class DesmosFold {
   constructor(calc, opts) {
     this.calc = calc;
     this.D = window.Desmos;
-    this.o = { orients: ['v', 'h'], lockC: null, presets: null, goLabel: '對摺！', onResult: null, onMatch: null, ...opts };
+    this.o = { orients: ['v', 'h'], lockC: null, presets: null, goLabel: '對摺！', onResult: null, onMatch: null, ghostEq: () => false, ...opts };
     this.o.pointsPanel = this.o.pointsPanel || this.o.panel;
     this.st = {
       a: 1, k: 0,
@@ -63,8 +64,12 @@ export class DesmosFold {
       <div class="msg fold-msg" aria-live="polite"></div>`);
     const pointsUI = o.presets === false ? '' : o.presets
       ? `<div class="row fold-presets">${o.presets.map((p) => `<button type="button" class="btn mono" data-px="${p.x}">${p.label}</button>`).join('')}</div>`
-      : `<div class="row" style="margin-top:.6rem">
-           <label class="row" style="gap:.3rem">選點：x =
+      : `<div class="row fold-quick" style="margin-top:.6rem">
+           <span>快速選點：</span>
+           ${[-2, -1, 1, 2].map((x) => `<button type="button" class="btn small mono" data-px="${x}">x = ${fmt(x)}</button>`).join('')}
+         </div>
+         <div class="row" style="margin-top:.4rem">
+           <label class="row" style="gap:.3rem">或輸入 x =
              <input class="numbox small fold-px" inputmode="decimal" placeholder="例 2" aria-label="依 x 值選點">
            </label>
            <button type="button" class="btn fold-pick">選這個點</button>
@@ -84,9 +89,11 @@ export class DesmosFold {
         this.calc.setExpression({ id: 'c', latex: `c=${L(Math.max(-25, Math.min(25, Math.round(v * 2) / 2)))}` });
       });
     }
-    if (o.presets === false) { /* 不提供選點 */ } else if (o.presets) {
+    if (o.presets !== false) {
+      // 預設點按鈕（任務②）與快速選點按鈕（自由探索）
       o.pointsPanel.querySelectorAll('[data-px]').forEach((b) => b.addEventListener('click', () => this.selectX(+b.dataset.px)));
-    } else {
+    }
+    if (o.presets === null) {
       const pick = () => {
         const v = parseNum(q('.fold-px').value);
         if (!Number.isFinite(v)) { this.setSelMsg('請先輸入 x 的值，例如 2。', 'bad'); return; }
@@ -249,7 +256,11 @@ export class DesmosFold {
     const matched = !!(st.ghost && st.ghost.orient === 'h' && this.ghostSame());
     if (matched && !st.matched) st.matchMsg = this.o.onMatch?.() || { text: '✓ 實線和虛線完全重合了！', cls: 'ok' };
     st.matched = matched;
-    const { text, cls } = matched ? st.matchMsg : st.foldMsg;
+    let { text, cls } = matched ? st.matchMsg : st.foldMsg;
+    if (!matched && st.ghost && st.ghost.orient === 'h' && this.o.ghostEq()) {
+      const g = st.ghost;
+      text += `（橘色虛線是 ${eqText(-g.a, 2 * g.c - g.k)}）`;
+    }
     const fm = q('.fold-msg');
     fm.textContent = text;
     fm.className = `msg fold-msg ${cls}`;

@@ -223,7 +223,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .plane .moving { fill: none; stroke: var(--mirror); stroke-width: 3.5; opacity: .9; }
 @keyframes pop { from { r: 0; } }
 
-/* 佔位頁 */
+/* 佔位頁、未開放 */
 .placeholder { padding: 40px 20px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); }
+.placeholder.locked h2 { color: var(--ink); margin: .3rem 0; font-size: 1.15rem; }
+.lock-icon { font-size: 2rem; }
+.subtabs a.is-locked { opacity: .6; border-style: dashed; }
 
 @media (prefers-reduced-motion: reduce) { .plane .pt.new { animation: none; } }

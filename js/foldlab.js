@@ -3,6 +3,7 @@
 import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, isPhone } from './desmos-core.js';
 import { DesmosFold } from './desmos-fold.js';
 import { eqText } from './format.js';
+import { flag, onSettings } from './settings.js';
 import { mountSlider } from './slider.js';
 
 export function mountFold(root) {
@@ -37,7 +38,10 @@ function build(root) {
   const fold = new DesmosFold(calc, {
     panel: $('#fd-fold'),
     onMatch: () => ({ text: `✓ 實線和虛線完全重合了！現在的圖形是 ${eqText(fold.st.a, fold.st.k)}。`, cls: 'ok' }),
+    ghostEq: () => flag('ghostEq'),
   });
+  // 老師切換「顯示虛線函數式」時立即更新
+  const off = onSettings(() => { if (root.isConnected) fold.refresh(); else off(); });
   fold.setTop(fitSquare(calc));
   lifecycle(root, calc, () => fold.setTop(fitSquare(calc, 11, st.hy)));
 

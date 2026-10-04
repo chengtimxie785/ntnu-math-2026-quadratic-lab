@@ -5,6 +5,7 @@ import { mountAK } from './ak.js';
 import { mountAxis } from './axis.js';
 import { mountFlip } from './flip.js';
 import { mountFold } from './foldlab.js';
+import { isUnlocked, onSettings } from './settings.js';
 
 const view = document.getElementById('view');
 const root = document.documentElement;
@@ -59,21 +60,47 @@ function renderHome() {
     </div>`;
 }
 
+// 尚未開放的頁面：分頁上加鎖頭，內容顯示提示
+const lockedHTML = (name) => `<div class="placeholder locked"><div class="lock-icon" aria-hidden="true">🔒</div><h2>${name}</h2><p>老師還沒有開放這裡，請先完成已開放的部分，或等老師宣布。</p></div>`;
+
+function tabsHTML(activeId) {
+  return LAB_TABS.map((x) => {
+    const lock = !isUnlocked(x.id);
+    return `<a href="#/lab/${x.id}" class="${x.id === activeId ? 'active' : ''}${lock ? ' is-locked' : ''}">${lock ? '🔒 ' : ''}${x.name}</a>`;
+  }).join('');
+}
+
+let current = { page: null, locked: null };
+
 function renderLab(tab) {
-  const t = LAB_TABS.find((x) => x.id === tab) || LAB_TABS[0];
+  // 沒指定分頁時，進到第一個已開放的任務
+  const t = LAB_TABS.find((x) => x.id === tab) || LAB_TABS.find((x) => isUnlocked(x.id)) || LAB_TABS[0];
+  const locked = !isUnlocked(t.id);
+  current = { page: t.id, locked };
   view.innerHTML = `
-    <nav class="subtabs" aria-label="互動專區">
-      ${LAB_TABS.map((x) => `<a href="#/lab/${x.id}" class="${x.id === t.id ? 'active' : ''}">${x.name}</a>`).join('')}
-    </nav>
+    <nav class="subtabs" aria-label="互動專區">${tabsHTML(t.id)}</nav>
     <div id="lab-root"></div>`;
-  t.mount(view.querySelector('#lab-root'));
+  const root = view.querySelector('#lab-root');
+  if (locked) root.innerHTML = lockedHTML(t.name);
+  else t.mount(root);
 }
 
 function renderQuiz() {
-  view.innerHTML = '<div class="placeholder"><h2 style="margin-top:0">測驗區</h2><p>關卡內容討論中，之後開放。</p></div>';
+  current = { page: 'quiz', locked: !isUnlocked('quiz') };
+  view.innerHTML = current.locked
+    ? lockedHTML('測驗區')
+    : '<div class="placeholder"><h2 style="margin-top:0">測驗區</h2><p>關卡內容討論中，之後開放。</p></div>';
 }
 
+// 老師改變開放設定時：目前頁面的開放狀態有變就重新載入，否則只更新分頁上的鎖頭
+onSettings(() => {
+  if (current.page && isUnlocked(current.page) === current.locked) { route(); return; }
+  const nav = view.querySelector('.subtabs');
+  if (nav) nav.innerHTML = tabsHTML(current.page);
+});
+
 function route() {
+  current = { page: null, locked: null };
   const parts = location.hash.replace(/^#\/?/, '').split('/');
   const nav = parts[0] || '';
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === nav));
