@@ -19,12 +19,12 @@ export function mountFlip(root) {
 function build(root) {
   const phone = isPhone();
   root.innerHTML = `
-    ${taskHeader('任務④ 上下翻', '把 y = ax² 沿著 x 軸翻下來，它會和哪一個函數的圖形重合？', '四（對摺題、歸納第 4 點）')}
+    ${taskHeader('任務④ 上下翻', '把 y = ax² 沿著橫的那條座標軸翻下來，它會和哪一個函數的圖形重合？', '四（對摺題、歸納第 4 點）')}
     <div class="lab">
       <div class="stage desmos-stage"><div id="fp-calc" class="desmos-box"></div></div>
       <div class="panel">
         <div class="card step" id="fp-step1">
-          <h3><span class="step-no">1</span>沿 x 軸翻下來<span class="step-done">✓ 完成</span></h3>
+          <h3><span class="step-no">1</span>沿著橫的座標軸翻下來<span class="step-done">✓ 完成</span></h3>
           <p class="step-target">要翻的圖形：<span class="eq-inline" id="fp-target"></span></p>
           <p class="hint" id="fp-hint1" style="margin-bottom:.4rem"></p>
         </div>
@@ -39,7 +39,7 @@ function build(root) {
         </div>
         <div class="card" id="fp-sum" hidden>
           <h3>你發現了嗎？</h3>
-          <p style="margin:0">y = ax² 的圖形沿著 x 軸翻下來，都會和 y = ＿＿＿ 的圖形重合。<br>把答案寫在學習單第四部分「我的歸納」第 4 點。</p>
+          <p style="margin:0">y = ax² 的圖形沿著橫的座標軸翻下來，都會和 y = ＿＿＿ 的圖形重合。<br>把答案寫在學習單第四部分「我的歸納」第 4 點。</p>
         </div>
       </div>
     </div>`;
@@ -57,7 +57,7 @@ function build(root) {
     orients: ['h'],
     lockC: 0,
     presets: false,
-    goLabel: '沿 x 軸翻下來',
+    goLabel: '翻下來',   // 按鈕不寫出「x 軸」：學習單四的對摺題要學生自己填
     onResult: (g) => {
       st.start = g.a; st.counted = false; st.isNew = false;
       setTimeout(update);
@@ -84,13 +84,13 @@ function build(root) {
     $('#fp-step2').className = `card step ${!folded ? 'waiting' : matched ? 'done' : 'active'}`;
     $('#fp-target').innerHTML = eqHTML(folded ? st.start : st.a, 0);
     $('#fp-hint1').textContent = folded ? '' : st.isNew
-      ? '新題目！先按下面的「沿 x 軸翻下來」。'
-      : '先按下面的按鈕，看藍色的圖形沿著 x 軸翻下來，變成橘色虛線。';
+      ? '新題目！先按下面的「翻下來」。'
+      : '先按下面的按鈕，看藍色的圖形沿著橫的座標軸翻下來，變成橘色虛線。';
 
     const h2 = $('#fp-hint2');
     if (!folded) { h2.textContent = '先完成步驟 1，再來拉 a。'; h2.className = 'msg'; }
     else if (matched) {
-      h2.textContent = `✓ 重合了！${eqText(st.start, 0)} 沿著 x 軸翻下來，和 ${eqText(st.a, 0)} 的圖形完全重合。`;
+      h2.textContent = `✓ 重合了！${eqText(st.start, 0)} 沿著橫的座標軸翻下來，和 ${eqText(st.a, 0)} 的圖形完全重合。`;
       h2.className = 'msg ok';
     } else { h2.textContent = '拉動 a，讓藍色實線和橘色虛線完全重合。'; h2.className = 'msg mirror'; }
 
