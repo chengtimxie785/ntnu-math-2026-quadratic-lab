@@ -47,7 +47,7 @@ export function mountAdmin(view) {
       <section class="card">
         <h3>測驗統計</h3>
         <p class="hint">示範（管理員）作答不列入。要投影給全班看，請開大螢幕看板。</p>
-        <div class="row"><a class="btn small primary" href="#/board" target="_blank" rel="noopener">開啟大螢幕看板</a></div>
+        <div class="row"><a class="btn small primary" href="#/board">開啟大螢幕看板</a></div>
         <div id="ad-quiz" class="hint">載入中…</div>
       </section>
 

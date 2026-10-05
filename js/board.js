@@ -42,6 +42,7 @@ export function mountBoard(view) {
   }
   view.innerHTML = `
     <div class="boardview">
+      <div class="row" style="margin-bottom:.5rem"><a class="btn small" href="#/admin">← 回管理頁</a></div>
       <nav class="subtabs" id="bd-tabs">
         <a href="#" data-tab="rank" class="active">排行榜</a>
         <a href="#" data-tab="mis">迷思統計</a>

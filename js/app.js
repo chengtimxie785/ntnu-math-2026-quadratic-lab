@@ -81,7 +81,7 @@ function renderLab(tab) {
   // 沒指定分頁時，進到第一個已開放的任務
   const t = LAB_TABS.find((x) => x.id === tab) || LAB_TABS.find((x) => isUnlocked(x.id)) || LAB_TABS[0];
   const locked = !isUnlocked(t.id);
-  current = { page: t.id, locked };
+  current = { page: t.id, locked, lab: true };
   view.innerHTML = `
     <nav class="subtabs" aria-label="互動專區">${tabsHTML(t.id)}</nav>
     <div id="lab-root"></div>`;
@@ -125,6 +125,7 @@ onSettings(() => {
   if (current.hub) { renderQuizHub(view); return; }                       // 關卡列表：更新鎖頭
   if (current.playing && !current.locked) return;                          // 作答中：不打斷
   if (current.page && isUnlocked(current.page) === current.locked) { route(); return; }
+  if (!current.lab) return;
   const nav = view.querySelector('.subtabs');
   if (nav) nav.innerHTML = tabsHTML(current.page);
 });

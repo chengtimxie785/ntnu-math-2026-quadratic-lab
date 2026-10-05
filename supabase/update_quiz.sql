@@ -106,29 +106,34 @@ begin
         where page like 'quiz%' and kind = 'answer' and not demo and correct = false
         group by 1, 2
       ) t), '[]'::jsonb),
-    -- 錯題：同一題（sig 相同）合併；picks 是「選項文字 → 選的人次」
+    -- 錯題：同一題（sig 相同）合併；picks 是「選項文字 → 選的人次」；只取答錯人次最多的 80 題
     'wrong', coalesce((
-      select jsonb_agg(w order by wrong_n desc, answers_n desc)
-      from (
-        select count(*) filter (where not e.correct) wrong_n, count(*) answers_n, jsonb_build_object(
-          'sig', e.payload ->> 'sig',
-          'q', (array_agg(e.payload order by e.created_at desc))[1],
-          'answers', count(*),
-          'wrong', count(*) filter (where not e.correct),
-          'students', count(distinct e.student_id) filter (where not e.correct),
-          'picks', (select jsonb_object_agg(pt, c) from (
-                      select e2.payload ->> 'pickedText' pt, count(*) c from public.events e2
-                      where e2.page like 'quiz%' and e2.kind = 'answer' and not e2.demo
-                        and e2.payload ->> 'sig' = e.payload ->> 'sig'
-                      group by 1) p)
-        ) w
-        from public.events e
-        where e.page like 'quiz%' and e.kind = 'answer' and not e.demo
-        group by e.payload ->> 'sig'
-        having count(*) filter (where not e.correct) > 0
-        order by wrong_n desc, answers_n desc
-        limit 80   -- 只取答錯人次最多的 80 題
-      ) t), '[]'::jsonb),
+      with ans as (
+        select payload ->> 'sig' sig, payload, correct, student_id, created_at
+        from public.events
+        where page like 'quiz%' and kind = 'answer' and not demo
+      ), pk as (
+        select sig, jsonb_object_agg(pt, c) picks
+        from (select sig, payload ->> 'pickedText' pt, count(*) c from ans
+              where payload ->> 'pickedText' is not null group by 1, 2) x
+        group by sig
+      ), grp as (
+        select sig, (array_agg(payload order by created_at desc))[1] q,
+               count(*) answers_n,
+               count(*) filter (where not correct) wrong_n,
+               count(distinct student_id) filter (where not correct) students
+        from ans
+        group by sig
+        having count(*) filter (where not correct) > 0
+        order by 4 desc, 3 desc
+        limit 80
+      )
+      select jsonb_agg(jsonb_build_object(
+               'sig', g.sig, 'q', g.q, 'answers', g.answers_n, 'wrong', g.wrong_n,
+               'students', g.students, 'picks', coalesce(p.picks, '{}'::jsonb))
+             order by g.wrong_n desc, g.answers_n desc)
+      from grp g left join pk p on p.sig = g.sig
+    ), '[]'::jsonb),
     'leaderboard', coalesce((
       select jsonb_agg(jsonb_build_object('rank', rk, 'nickname', coalesce(nickname, '（未取暱稱）'),
                        'student_id', student_id, 'total', total, 'levels', levels) order by rk, ms)
