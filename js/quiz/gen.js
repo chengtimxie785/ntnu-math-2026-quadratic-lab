@@ -199,25 +199,25 @@ function level2() {
 const ABS_SET = [1 / 3, 0.5, 1, 2, 3, 4];
 function level3() {
   return Array.from({ length: 5 }, () => () => {
-    const n = Math.random() < 0.4 ? 2 : 3;
-    let as;
-    // 至少要有一組「a 比較大，但 |a| 比較小」的陷阱（例如 −3 和 2）
-    for (let tries = 0; tries < 50; tries++) {
-      as = shuffle(ABS_SET).slice(0, n).map((v) => (Math.random() < 0.5 ? -v : v));
-      const trap = as.some((x) => as.some((y) => x < y && Math.abs(x) > Math.abs(y)));
-      if (trap) break;
-    }
+    // 三個選項各有固定角色，讓「選了哪個錯誤選項」能對應到唯一的迷思：
+    //   問「開口最大」（正解 = |a| 最小）
+    //     a_not_abs：用 a（含正負號）比，會選 a 最小的 → 安排成負數、|a| 居中
+    //     size_reverse：|a| 大小關係弄反，會選 |a| 最大的 → 安排成正數
+    //   問「開口最小」（正解 = |a| 最大）→ 正負對調
+    const [sm, md, lg] = shuffle(ABS_SET).slice(0, 3).sort((x, y) => x - y);
     const askMax = Math.random() < 0.5;
+    const sSign = Math.random() < 0.5 ? -1 : 1;
+    const small = sSign * sm;
+    const [correct, signedPick, reverse] = askMax ? [small, -md, lg] : [-lg, md, small];
+    const choices = [
+      { ...fn(correct, 0), mis: null },
+      { ...fn(signedPick, 0), mis: 'a_not_abs' },
+      { ...fn(reverse, 0), mis: 'size_reverse' },
+    ];
+    const as = [correct, signedPick, reverse];
     const byAbs = as.slice().sort((x, y) => Math.abs(x) - Math.abs(y));
-    const correct = askMax ? byAbs[0] : byAbs[byAbs.length - 1];
-    const reverse = askMax ? byAbs[byAbs.length - 1] : byAbs[0];
-    // 誤用 a（而非 |a|）的人會選的：問最大 → 選 a 最小的；問最小 → 選 a 最大的
-    const bySigned = as.slice().sort((x, y) => x - y);
-    const signedPick = askMax ? bySigned[0] : bySigned[bySigned.length - 1];
-    const misOf = (a) => (a === correct ? null : a === signedPick ? 'a_not_abs' : a === reverse ? 'size_reverse' : 'other');
-    const choices = [correct, ...as.filter((a) => a !== correct)].map((a) => ({ ...fn(a, 0), mis: misOf(a) }));
     const word = askMax ? '最大' : '最小';
-    const absList = byAbs.map((a) => `|${numT(a)}|`).join(' < ');
+    const absList = byAbs.map((a) => `|${numS(a)}|`).join(' < ');
     return finalize({
       level: 3, type: askMax ? 'max' : 'min', sig: `3:${askMax ? 'max' : 'min'}:${as.join(',')}`,
       prompt: `下面哪一個函數的圖形，開口${word}？`,

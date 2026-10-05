@@ -329,6 +329,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .lvtab.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
 .lvtab-n { background: var(--line); color: var(--ink); border-radius: 999px; padding: 0 .45rem; font-size: .8rem; }
 .lvtab.active .lvtab-n { background: var(--accent); color: #fff; }
+.mis-tabs { margin-top: -.3rem; }
+.mis-tabs .lvtab { font-size: .9rem; border-radius: 8px; }
 .mis-group { margin-bottom: 1.1rem; padding-bottom: .6rem; border-bottom: 1px solid var(--line); }
 .mis-group h3 { margin: 0 0 .5rem; font-size: 1.15rem; }
 .bars li { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 7.5rem; }
