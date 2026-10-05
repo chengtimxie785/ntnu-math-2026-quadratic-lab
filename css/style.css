@@ -303,6 +303,15 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .bars li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 3rem; gap: .6rem; align-items: center; }
 .bar { height: .9rem; background: var(--line); border-radius: 999px; overflow: hidden; }
 .bar > span { display: block; height: 100%; background: var(--mirror); border-radius: 999px; }
+.lvtabs { display: flex; gap: .4rem; flex-wrap: wrap; margin: .5rem 0 .8rem; }
+.lvtab { border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 999px; padding: .3rem .9rem; cursor: pointer; font-size: 1rem; display: inline-flex; gap: .4rem; align-items: center; }
+.lvtab.active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.lvtab-n { background: var(--line); color: var(--ink); border-radius: 999px; padding: 0 .45rem; font-size: .8rem; }
+.lvtab.active .lvtab-n { background: var(--accent); color: #fff; }
+.mis-group { margin-bottom: 1.1rem; padding-bottom: .6rem; border-bottom: 1px solid var(--line); }
+.mis-group h3 { margin: 0 0 .5rem; font-size: 1.15rem; }
+.bars li { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 7.5rem; }
+.bar-num { display: grid; line-height: 1.2; text-align: right; }
 .wrong-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
 .wrong-item { width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: .8rem; align-items: center; text-align: left; padding: .6rem .8rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; color: var(--ink); }
 .wrong-item:hover { border-color: var(--accent); }

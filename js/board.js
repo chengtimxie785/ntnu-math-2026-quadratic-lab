@@ -52,6 +52,7 @@ export function mountBoard(view) {
     </div>`;
   const body = view.querySelector('#bd-body');
   let tab = 'rank', data = null, detail = null, reveal = false;
+  let lvSel = 0;   // 迷思統計、錯題的關卡篩選（0 = 全部）；自動更新時保留
 
   view.querySelector('#bd-tabs').addEventListener('click', (e) => {
     const a = e.target.closest('[data-tab]');
@@ -84,35 +85,63 @@ export function mountBoard(view) {
       : '<div class="placeholder">還沒有人完成關卡。</div>';
   }
 
+  // 關卡小分頁：「全部」＋第 1～5 關，旁邊標出數量
+  function levelTabs(countOf) {
+    const btn = (id, label, n) => `<button type="button" class="lvtab${lvSel === id ? ' active' : ''}" data-lv="${id}">${label}${n ? `<span class="lvtab-n">${n}</span>` : ''}</button>`;
+    return `<nav class="lvtabs" aria-label="選擇關卡">${btn(0, '全部', 0)}${LEVELS.map((l) => btn(l.id, `第 ${l.id} 關`, countOf(l.id))).join('')}</nav>`;
+  }
+  function bindLevelTabs() {
+    body.querySelectorAll('.lvtab').forEach((b) => b.addEventListener('click', () => { lvSel = +b.dataset.lv; render(); }));
+  }
+  const levelStat = (id) => (data.levels || []).find((x) => x.level === id);
+  const pct = (n, d) => (d ? `${Math.round((n / d) * 100)}%` : '—');
+
   function renderMis() {
-    const lv = data.levels || [];
-    const mis = (data.mis || []).slice(0, 10);
-    const max = Math.max(1, ...mis.map((m) => m.count));
+    const all = data.mis || [];
+    const shown = LEVELS.filter((l) => !lvSel || l.id === lvSel);
+    const groups = shown.map((l) => {
+      const s = levelStat(l.id);
+      // 同一關的迷思：先比犯錯人數，再比次數
+      const items = all.filter((m) => +m.level === l.id).sort((x, y) => y.students - x.students || y.count - x.count);
+      const max = Math.max(1, ...items.map((m) => m.students));
+      return `
+        <section class="mis-group">
+          <h3>${esc(lvName(l.id))}<span class="hint">　答對率 ${s ? pct(s.correct, s.answers) : '—'}・${s ? `${s.players} 人作答` : '還沒有人作答'}</span></h3>
+          ${items.length ? `<ul class="bars">${items.map((m) => `
+            <li><span class="bar-label">${esc(MIS[m.mis] || m.mis)}</span>
+              <span class="bar"><span style="width:${(m.students / max) * 100}%"></span></span>
+              <span class="bar-num"><strong>${+m.students} 人</strong><span class="hint">${+m.count} 次・${s ? pct(m.count, s.answers) : '—'}</span></span></li>`).join('')}</ul>`
+            : '<p class="hint">這一關目前沒有錯誤紀錄。</p>'}
+        </section>`;
+    }).join('');
     body.innerHTML = `
       <div class="stat-row">${LEVELS.map((l) => {
-        const s = lv.find((x) => x.level === l.id);
-        const rate = s && s.answers ? Math.round((s.correct / s.answers) * 100) : null;
-        return `<div class="stat"><div class="hint">第 ${l.id} 關</div><div class="stat-num">${rate === null ? '—' : `${rate}%`}</div>
+        const s = levelStat(l.id);
+        return `<div class="stat"><div class="hint">第 ${l.id} 關</div><div class="stat-num">${s ? pct(s.correct, s.answers) : '—'}</div>
           <div class="hint">${s ? `${s.players} 人・${s.answers} 題次` : '還沒有人作答'}</div></div>`;
       }).join('')}</div>
       <h3 style="margin:1rem 0 .4rem">全班最常犯的迷思</h3>
-      ${mis.length ? `<ul class="bars">${mis.map((m) => `
-        <li><span class="bar-label">${esc(MIS[m.mis] || m.mis)}<span class="hint">　第 ${m.level} 關・${m.students} 人</span></span>
-        <span class="bar"><span style="width:${(m.count / max) * 100}%"></span></span><span class="mono">${m.count}</span></li>`).join('')}</ul>`
-        : '<div class="placeholder">還沒有錯誤紀錄。</div>'}`;
+      <p class="hint">依犯錯人數由多到少排列；百分比是佔該關所有作答題次的比例。</p>
+      ${levelTabs((id) => all.filter((m) => +m.level === id).length)}
+      ${groups}`;
+    bindLevelTabs();
   }
 
   function renderWrongList() {
-    const list = data.wrong || [];
-    body.innerHTML = list.length
-      ? `<p class="hint">依答錯人次排序。點一題可以放大投影，先讓同學討論，再按「顯示正解」。</p>
-         <ul class="wrong-list">${list.map((w, i) => `
+    const all = data.wrong || [];
+    const list = all.filter((w) => !lvSel || +w.q.level === lvSel)
+      .sort((x, y) => y.wrong - x.wrong || y.wrong / y.answers - x.wrong / x.answers);
+    body.innerHTML = `
+      <p class="hint">依答錯人次由多到少排列。點一題可以放大投影，先讓同學討論，再按「顯示正解」。</p>
+      ${levelTabs((id) => all.filter((w) => +w.q.level === id).length)}
+      ${list.length ? `<ul class="wrong-list">${list.map((w, i) => `
           <li><button type="button" class="wrong-item" data-i="${i}">
             <span class="tag">${lvName(+w.q.level)}</span>
             <span class="wrong-prompt">${safeHTML(w.q.promptHtml)}${w.q.graph ? '<span class="hint">（看圖題）</span>' : ''}</span>
-            <span class="wrong-n"><strong>${w.wrong}</strong> 人次答錯 / ${w.answers}</span>
+            <span class="wrong-n"><strong>${+w.wrong}</strong> 人次答錯 / ${+w.answers}<span class="hint">　錯誤率 ${pct(w.wrong, w.answers)}</span></span>
           </button></li>`).join('')}</ul>`
-      : '<div class="placeholder">還沒有錯題。</div>';
+        : `<div class="placeholder">${lvSel ? '這一關目前沒有錯題。' : '還沒有錯題。'}</div>`}`;
+    bindLevelTabs();
     body.querySelectorAll('.wrong-item').forEach((b) => b.addEventListener('click', () => {
       detail = list[+b.dataset.i]; reveal = false; render();
     }));
