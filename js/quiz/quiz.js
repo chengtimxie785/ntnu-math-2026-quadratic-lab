@@ -1,6 +1,7 @@
 // 測驗區：關卡列表、作答、結算、排行榜
 //
-// 計分：答對 100；連續答對第 2 題起每題 +20（最多 +80）；答對時 3 秒內 +50，15 秒以上 0，中間線性遞減
+// 計分：答對 100；連續答對第 2 題起每題 +20（最多 +80）；
+//       速度加分（答對才有）＝ 50 ×（15 秒 − 作答時間）÷ 15 秒，依比例遞減，15 秒以上為 0
 // 每一題的作答（含完整題目）都寫進後端 events，老師端可以看錯題與迷思統計
 
 import { makeLevel } from './gen.js';
@@ -22,10 +23,13 @@ function saveSeen(lv, set) {
 }
 
 // ---------- 計分 ----------
+export const SPEED_MAX = 50, SPEED_MS = 15000;
+export const speedBonus = (ms) => Math.round(SPEED_MAX * Math.max(0, SPEED_MS - ms) / SPEED_MS);
+
 export function points(ok, streak, ms) {
   if (!ok) return { base: 0, combo: 0, speed: 0, total: 0 };
   const combo = Math.min(80, 20 * (streak - 1));
-  const speed = ms <= 3000 ? 50 : ms >= 15000 ? 0 : Math.round(50 * (15000 - ms) / 12000);
+  const speed = speedBonus(ms);
   return { base: 100, combo, speed, total: 100 + combo + speed };
 }
 
@@ -33,7 +37,7 @@ export function points(ok, streak, ms) {
 export async function renderQuizHub(view) {
   const avail = LEVELS.filter((l) => isUnlocked(`quiz${l.id}`));
   view.innerHTML = `
-    <div class="task"><h2>測驗區</h2><p>每關 5 題。答對得 100 分，連續答對、答得快都有加分。每關可以重玩，取最高分。</p></div>
+    <div class="task"><h2>測驗區</h2><p>每關 5 題。答對得 100 分；連續答對每題多 +20（最多 +80）；答得越快，速度加分越多（最多 +50，15 秒後歸零）。每關可以重玩，取最高分。</p></div>
     <div class="quiz-levels" id="qz-levels">
       ${LEVELS.map((l) => {
         const open = isUnlocked(`quiz${l.id}`);
@@ -95,6 +99,7 @@ export function playLevel(view, level) {
         <span class="mono">分數 <strong id="qz-score">0</strong></span>
       </div>
       <div class="progress"><span id="qz-pbar"></span></div>
+      <div class="speed" aria-hidden="true"><span class="speed-label">速度加分 <strong id="qz-spd">+50</strong></span><span class="speed-bar"><span id="qz-spdbar"></span></span></div>
       <section class="card quiz-q">
         <div class="quiz-prompt" id="qz-prompt"></div>
         <div id="qz-graph"></div>
@@ -119,6 +124,24 @@ export function playLevel(view, level) {
     $('#qz-fb').textContent = ''; $('#qz-fb').className = 'msg';
     $('#qz-next').hidden = true;
     st.t0 = performance.now();
+    tick();
+  }
+
+  // 速度加分即時倒數（答題後停止）
+  let timer = null;
+  function tick() {
+    cancelAnimationFrame(timer);
+    const step = () => {
+      if (!view.isConnected || st.answered) return;
+      const ms = performance.now() - st.t0;
+      const b = speedBonus(ms);
+      const lbl = $('#qz-spd'), bar = $('#qz-spdbar');
+      if (!lbl) return;
+      lbl.textContent = `+${b}`;
+      bar.style.width = `${(Math.max(0, SPEED_MS - ms) / SPEED_MS) * 100}%`;
+      if (b > 0) timer = requestAnimationFrame(step);
+    };
+    timer = requestAnimationFrame(step);
   }
 
   $('#qz-choices').addEventListener('click', (e) => {

@@ -58,7 +58,7 @@ function applyState(st) {
   session.admin = !!st.admin;
   session.loginMode = st.login_mode || 'normal';
   setAdmin(session.admin);
-  applySettings({ unlocked: st.unlocked || [], flags: st.flags || {} });
+  applySettings({ unlocked: st.unlocked || [], flags: st.flags || {}, loginMode: session.loginMode });
 }
 
 // 網頁載入時呼叫：處理 Google 登入回來的流程、確認目前身分、取得設定
@@ -92,8 +92,15 @@ export async function init() {
     }
     // 移除網址上 Google 回傳的 ?code=
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
-    applyState(await rpc('get_state', { tok: session.token }));
-    if (!session.me && session.token) { session.token = null; store(TOKEN_KEY, null); }
+    let st = await rpc('get_state', { tok: session.token });
+    if (!st.me && session.token) { session.token = null; store(TOKEN_KEY, null); }
+    if (!st.me && auth && !st.admin) {
+      try {
+        const r = await rpc('login_google');
+        if (r.token) { session.token = r.token; store(TOKEN_KEY, r.token); st = await rpc('get_state', { tok: session.token }); }
+      } catch (_) { /* 不在名單內：維持未登入 */ }
+    }
+    applyState(st);
   } catch (e) {
     session.offline = true;
     session.offlineReason = e.message;
@@ -131,7 +138,7 @@ export async function setNickname(nick) {
 
 export async function logout() {
   try { if (session.token) await rpc('logout', { tok: session.token }); } catch (_) { /* 已失效 */ }
-  try { (await client()).auth.signOut(); } catch (_) { /* 忽略 */ }
+  try { await (await client()).auth.signOut(); } catch (_) { /* 忽略 */ }
   store(TOKEN_KEY, null);
   Object.assign(session, { token: null, me: null, admin: false, email: null });
   setAdmin(false);

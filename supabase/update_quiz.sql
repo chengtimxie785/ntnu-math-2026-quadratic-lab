@@ -95,7 +95,7 @@ begin
         select (payload ->> 'level')::int lvl, count(distinct student_id) players,
                count(*) answers, count(*) filter (where correct) correct
         from public.events
-        where page like 'quiz%' and kind = 'answer' and not demo
+        where page like 'quiz%' and kind = 'answer' and not demo and payload ->> 'level' ~ '^[1-5]$'
         group by 1
       ) t), '[]'::jsonb),
     'mis', coalesce((
@@ -103,7 +103,7 @@ begin
       from (
         select (payload ->> 'level')::int lvl, payload ->> 'mis' mis, count(*) n, count(distinct student_id) s
         from public.events
-        where page like 'quiz%' and kind = 'answer' and not demo and correct = false
+        where page like 'quiz%' and kind = 'answer' and not demo and payload ->> 'level' ~ '^[1-5]$' and correct = false
         group by 1, 2
       ) t), '[]'::jsonb),
     -- 錯題：同一題（sig 相同）合併；picks 是「選項文字 → 選的人次」；只取答錯人次最多的 80 題
@@ -111,7 +111,7 @@ begin
       with ans as (
         select payload ->> 'sig' sig, payload, correct, student_id, created_at
         from public.events
-        where page like 'quiz%' and kind = 'answer' and not demo
+        where page like 'quiz%' and kind = 'answer' and not demo and payload ->> 'level' ~ '^[1-5]$'
       ), pk as (
         select sig, jsonb_object_agg(pt, c) picks
         from (select sig, payload ->> 'pickedText' pt, count(*) c from ans
@@ -158,7 +158,7 @@ grant execute on function
   public.quiz_leaderboard(text), public.admin_quiz_stats()
 to anon, authenticated;
 
--- 作答紀錄加上大小限制（避免被塞入過大的資料）
+-- 作答紀錄：大小限制＋測驗作答的格式檢查（避免被塞入過大或格式錯誤、會讓統計失敗的資料）
 create or replace function public.log_event(tok text, pg text, k text, p jsonb default null, ok boolean default null)
 returns void language plpgsql security definer set search_path = public as $$
 declare
@@ -169,6 +169,14 @@ begin
   end if;
   if p is not null and octet_length(p::text) > 8000 then
     raise exception '資料太大' using errcode = 'P0001';
+  end if;
+  if pg like 'quiz%' and (
+       pg !~ '^quiz[1-5]$' or k <> 'answer' or p is null or ok is null
+       or coalesce(p ->> 'level', '') !~ '^[1-5]$' or 'quiz' || (p ->> 'level') <> pg
+       or coalesce(p ->> 'sig', '') = '' or jsonb_typeof(p -> 'choices') is distinct from 'array'
+       or coalesce(p ->> 'answer', '') !~ '^[0-9]$'
+     ) then
+    raise exception '作答紀錄格式不正確' using errcode = 'P0001';
   end if;
   insert into public.events (student_id, demo, page, kind, payload, correct)
   values (sid, sid is null or public._is_admin(), left(pg, 40), left(k, 40), p, ok);

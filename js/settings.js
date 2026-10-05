@@ -29,6 +29,7 @@ const state = {
   admin: false,            // 管理員（老師）看得到所有頁面，不受開放設定限制
   unlocked: new Set(PAGES),
   flags: Object.fromEntries(Object.keys(FLAGS).map((k) => [k, false])),
+  loginMode: 'normal',
 };
 const listeners = new Set();
 
@@ -40,10 +41,16 @@ function readDev() {
 }
 
 // 套用新設定（之後由 Supabase 端呼叫）
-export function applySettings({ unlocked, flags } = {}) {
+export function applySettings({ unlocked, flags, loginMode } = {}) {
+  const before = signature();
   if (Array.isArray(unlocked)) state.unlocked = new Set(unlocked);
   if (flags) Object.assign(state.flags, flags);
+  if (loginMode) state.loginMode = loginMode;
+  if (signature() === before) return;   // 沒有改變就不通知，避免畫面每次輪詢都重繪
   for (const cb of listeners) cb();
+}
+function signature() {
+  return JSON.stringify([[...state.unlocked].sort(), state.flags, state.loginMode]);
 }
 
 export const isUnlocked = (page) => state.admin || state.unlocked.has(page);

@@ -296,7 +296,7 @@ function level5() {
       { ...fn(a, k), mis: null },
       { ...fn(-a, k), mis: 'sign_open' },
       { ...fn(a2, k), mis: 'abs_size' },
-      { ...fn(a, k2), mis: 'shift_dir' },
+      { ...fn(a, k2), mis: 'read_k' },
     ]);
     return finalize({
       level: 5, type: 'graph', sig: `5:${a},${k}`,

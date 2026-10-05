@@ -122,6 +122,7 @@ function renderUserbox() {
 // 老師改變開放設定時：目前頁面的開放狀態有變就重新載入，否則只更新分頁上的鎖頭
 onSettings(() => {
   renderUserbox();
+  if (current.login) { if (session.loginMode !== current.loginMode) route(); return; }   // 登入頁：只有登入模式改變時才重畫（避免清掉正在輸入的學號）
   if (current.hub) { renderQuizHub(view); return; }                       // 關卡列表：更新鎖頭
   if (current.playing && !current.locked) return;                          // 作答中：不打斷
   if (current.page && isUnlocked(current.page) === current.locked) { route(); return; }
@@ -141,7 +142,7 @@ function route() {
   renderUserbox();
   if (nav === 'admin') { mountAdmin(view); return; }               // 管理頁自己處理 Google 登入
   if (nav === 'board') { mountBoard(view); return; }               // 大螢幕看板（管理員）
-  if (!loggedIn()) { renderLogin(view, afterLogin); return; }
+  if (!loggedIn()) { current = { page: null, login: true, loginMode: session.loginMode }; renderLogin(view, afterLogin); return; }
   if (session.me && !session.me.nickname) { renderNickname(view, route); return; }
   if (nav === 'lab') renderLab(parts[1]);
   else if (nav === 'quiz') renderQuiz(parts[1]);

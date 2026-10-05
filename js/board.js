@@ -64,8 +64,16 @@ export function mountBoard(view) {
     render();
   });
 
+  // 只保留格式正確的錯題紀錄
+  const validWrong = (w) => w && w.q && Array.isArray(w.q.choices) && Number.isInteger(+w.q.level) && +w.q.level >= 1 && +w.q.level <= 5
+    && Number.isInteger(+w.q.answer) && w.picks && typeof w.picks === 'object';
+
   async function load() {
-    try { data = await rpc('admin_quiz_stats'); render(); }
+    try {
+      data = await rpc('admin_quiz_stats');
+      data.wrong = (data.wrong || []).filter(validWrong);
+      render();
+    }
     catch (e) { body.innerHTML = `<div class="msg bad">${esc(e.message)}</div>`; }
   }
 
