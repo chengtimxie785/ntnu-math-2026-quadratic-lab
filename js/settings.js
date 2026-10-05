@@ -12,7 +12,11 @@ export const PAGE_NAMES = {
   flip: '任務④ 上下翻',
   k: '任務⑤ 拉拉看 k',
   free: '自由探索',
-  quiz: '測驗區',
+  quiz1: '測驗 第 1 關 是不是二次函數？',
+  quiz2: '測驗 第 2 關 看式子想圖形',
+  quiz3: '測驗 第 3 關 開口誰比較大',
+  quiz4: '測驗 第 4 關 平移',
+  quiz5: '測驗 第 5 關 看圖選式子',
 };
 export const PAGES = Object.keys(PAGE_NAMES);
 

@@ -9,6 +9,8 @@ import { isUnlocked, isAdmin, onSettings } from './settings.js';
 import { init, session, loggedIn, logout, startPolling } from './backend.js';
 import { renderLogin, renderNickname } from './login.js';
 import { mountAdmin } from './admin.js';
+import { renderQuizHub, playLevel } from './quiz/quiz.js';
+import { mountBoard } from './board.js';
 
 const view = document.getElementById('view');
 const root = document.documentElement;
@@ -91,11 +93,17 @@ function renderLab(tab) {
   else t.mount(root);
 }
 
-function renderQuiz() {
-  current = { page: 'quiz', locked: !isUnlocked('quiz') };
-  view.innerHTML = current.locked
-    ? lockedHTML('測驗區')
-    : '<div class="placeholder"><h2 style="margin-top:0">測驗區</h2><p>關卡內容討論中，之後開放。</p></div>';
+// 測驗區：#/quiz 是關卡列表，#/quiz/3 是第 3 關
+function renderQuiz(lv) {
+  const level = parseInt(lv, 10);
+  if (level) {
+    current = { page: `quiz${level}`, locked: !isUnlocked(`quiz${level}`), playing: true };
+    if (current.locked) view.innerHTML = lockedHTML(`測驗 第 ${level} 關`);
+    else playLevel(view, level);
+    return;
+  }
+  current = { page: 'quizhub', locked: null, hub: true };
+  renderQuizHub(view);
 }
 
 // 右上角：暱稱與登出、管理頁連結
@@ -114,6 +122,8 @@ function renderUserbox() {
 // 老師改變開放設定時：目前頁面的開放狀態有變就重新載入，否則只更新分頁上的鎖頭
 onSettings(() => {
   renderUserbox();
+  if (current.hub) { renderQuizHub(view); return; }                       // 關卡列表：更新鎖頭
+  if (current.playing && !current.locked) return;                          // 作答中：不打斷
   if (current.page && isUnlocked(current.page) === current.locked) { route(); return; }
   const nav = view.querySelector('.subtabs');
   if (nav) nav.innerHTML = tabsHTML(current.page);
@@ -129,10 +139,11 @@ function route() {
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === nav));
   renderUserbox();
   if (nav === 'admin') { mountAdmin(view); return; }               // 管理頁自己處理 Google 登入
+  if (nav === 'board') { mountBoard(view); return; }               // 大螢幕看板（管理員）
   if (!loggedIn()) { renderLogin(view, afterLogin); return; }
   if (session.me && !session.me.nickname) { renderNickname(view, route); return; }
   if (nav === 'lab') renderLab(parts[1]);
-  else if (nav === 'quiz') renderQuiz();
+  else if (nav === 'quiz') renderQuiz(parts[1]);
   else renderHome();
 }
 

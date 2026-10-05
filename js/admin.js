@@ -3,6 +3,7 @@
 
 import { session, rpc, loginGoogle } from './backend.js';
 import { PAGE_NAMES, FLAGS } from './settings.js';
+import { MIS, LEVELS } from './quiz/mis.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ROLE = { student: '學生', teacher: '老師／助教' };
@@ -41,6 +42,13 @@ export function mountAdmin(view) {
           <button type="button" class="btn small" id="ad-all-on">全部開放</button>
           <button type="button" class="btn small" id="ad-all-off">全部關閉</button>
         </div>
+      </section>
+
+      <section class="card">
+        <h3>測驗統計</h3>
+        <p class="hint">示範（管理員）作答不列入。要投影給全班看，請開大螢幕看板。</p>
+        <div class="row"><a class="btn small primary" href="#/board" target="_blank" rel="noopener">開啟大螢幕看板</a></div>
+        <div id="ad-quiz" class="hint">載入中…</div>
       </section>
 
       <section class="card">
@@ -104,6 +112,22 @@ export function mountAdmin(view) {
   async function load() {
     try { data = await rpc('admin_overview'); render(); }
     catch (e) { say(e.message, 'bad'); }
+    try { renderQuiz(await rpc('admin_quiz_stats')); }
+    catch (e) { $('#ad-quiz').textContent = /admin_quiz_stats/.test(e.message) ? '尚未執行 update_quiz.sql。' : e.message; }
+  }
+
+  function renderQuiz(q) {
+    const rows = LEVELS.map((l) => {
+      const s = (q.levels || []).find((x) => x.level === l.id);
+      const rate = s && s.answers ? `${Math.round((s.correct / s.answers) * 100)}%` : '—';
+      return `<tr><td>第 ${l.id} 關 ${esc(l.name)}</td><td>${s ? s.players : 0}</td><td>${s ? s.answers : 0}</td><td>${rate}</td></tr>`;
+    }).join('');
+    const mis = (q.mis || []).slice(0, 5).map((m) => `<li>${esc(MIS[m.mis] || m.mis)}<span class="hint">　第 ${+m.level} 關・${+m.count} 次・${+m.students} 人</span></li>`).join('');
+    $('#ad-quiz').className = '';
+    $('#ad-quiz').innerHTML = `
+      <div class="table-wrap"><table class="roster"><thead><tr><th>關卡</th><th>作答人數</th><th>題次</th><th>答對率</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <h4 style="margin:.8rem 0 .3rem">最常見的迷思</h4>
+      ${mis ? `<ol style="margin:0;padding-left:1.4rem">${mis}</ol>` : '<p class="hint">還沒有錯誤紀錄。</p>'}`;
   }
 
   function toggle(id, label, on) {
