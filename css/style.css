@@ -180,6 +180,18 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .msg.mirror { border-color: var(--mirror); }
 .msg:empty { display: none; }
 
+/* 步驟卡片（任務④）：目前步驟亮起、未到的步驟變暗、完成的打勾 */
+.step h3 { display: flex; align-items: center; gap: .5rem; }
+.step-no { width: 1.6rem; height: 1.6rem; border-radius: 50%; display: inline-grid; place-items: center; font-size: .9rem; background: var(--line); color: var(--ink); flex: none; }
+.step-done { display: none; margin-left: auto; color: var(--ok); font-size: .9rem; }
+.step.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.step.active .step-no { background: var(--accent); color: #fff; }
+.step.done .step-no { background: var(--ok); color: #fff; }
+.step.done .step-done { display: inline; }
+.step.waiting { opacity: .55; }
+.step-target { margin: 0 0 .3rem; }
+.step input:disabled { opacity: .5; }
+
 /* 保留的曲線清單 */
 .pins { margin-top: .7rem; border-top: 1px solid var(--line); padding-top: .6rem; }
 .pins-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }

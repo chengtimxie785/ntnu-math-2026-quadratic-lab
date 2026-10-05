@@ -9,6 +9,7 @@
 //   goLabel      對摺按鈕文字
 //   onResult(r)  對摺動畫結束時呼叫，r = {orient, c, same}；可回傳 {text, cls} 取代預設訊息
 //   onMatch()    水平對摺後，目前圖形和虛線重合時呼叫；可回傳 {text, cls} 當作重合訊息
+//   onClear()    按「清除」後呼叫
 //   ghostEq()    回傳 true 時，水平對摺後在訊息中顯示虛線的函數式（由老師端開關控制）
 
 import { COLORS, L, watch } from './desmos-core.js';
@@ -125,6 +126,7 @@ export class DesmosFold {
     const st = this.st;
     st.sel = false; st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false;
     this.drawGhost(); this.draw(); this.refresh();
+    this.o.onClear?.();
   }
 
   // 由頁面在視窗範圍改變時呼叫
