@@ -192,6 +192,15 @@ main { max-width: 1280px; margin: 0 auto; padding: 16px; outline: none; }
 .step-target { margin: 0 0 .3rem; }
 .step input:disabled { opacity: .5; }
 
+/* 打勾清單（學習單表格要填的值） */
+.checks { display: flex; flex-wrap: wrap; gap: .35rem; margin: .2rem 0 .5rem; }
+.check { display: inline-flex; align-items: center; gap: .25rem; padding: .15rem .6rem; border: 1px dashed var(--line); border-radius: 999px; font-family: "JetBrains Mono", "Noto Sans TC", monospace; font-size: .9rem; color: var(--muted); }
+.check::before { content: '○'; }
+.check.on { border-style: solid; border-color: var(--ok); color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--bg)); }
+.check.on::before { content: '✓'; }
+.check .frac { font-size: .8em; }
+.step-hint:empty { display: none; }
+
 /* 保留的曲線清單 */
 .pins { margin-top: .7rem; border-top: 1px solid var(--line); padding-top: .6rem; }
 .pins-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
