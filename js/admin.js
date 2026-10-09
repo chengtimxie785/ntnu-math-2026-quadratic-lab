@@ -120,18 +120,26 @@ export function mountAdmin(view) {
     $('#ad-pages').innerHTML = group('互動專區', LAB_SHORT) + group('測驗區', QUIZ_SHORT);
   }
 
+  // 測驗統計：答對率與迷思都用百分比長條呈現，人數為輔
   function renderQuiz(q) {
-    const rows = LEVELS.map((l) => {
-      const s = (q.levels || []).find((x) => x.level === l.id);
-      const rate = s && s.answers ? `${Math.round((s.correct / s.answers) * 100)}%` : '—';
-      return `<tr><td>第 ${l.id} 關 ${esc(l.name)}</td><td>${s ? s.players : 0}</td><td>${s ? s.answers : 0}</td><td>${rate}</td></tr>`;
+    const pct = (n, d) => (d ? Math.round((n / d) * 100) : 0);
+    const row = (label, sub, p, cls, note) => `
+      <li class="pct-row"><div class="pct-text"><span class="pct-label">${label}</span>${sub ? `<span class="pct-sub">${sub}</span>` : ''}</div>
+        <div class="pct-bar ${cls}"><span style="width:${p ?? 0}%"></span></div>
+        <div class="pct-num"><strong>${p == null ? '—' : `${p}%`}</strong><span>${note}</span></div></li>`;
+    const lv = (id) => (q.levels || []).find((x) => x.level === id);
+    const levels = LEVELS.map((l) => {
+      const s = lv(l.id);
+      return row(`第 ${l.id} 關`, esc(l.name), s ? pct(s.correct, s.answers) : null, 'ok', s ? `${s.players} 人作答` : '還沒有人作答');
     }).join('');
-    const mis = (q.mis || []).slice(0, 5).map((m) => `<li>${esc(MIS[m.mis] || m.mis)}<span class="hint">　第 ${+m.level} 關・${+m.count} 次・${+m.students} 人</span></li>`).join('');
+    const mis = (q.mis || []).map((m) => ({ ...m, d: lv(+m.level)?.players || 0 }))
+      .sort((x, y) => pct(y.students, y.d) - pct(x.students, x.d) || y.students - x.students).slice(0, 5)
+      .map((m) => row(esc(MIS[m.mis] || m.mis), `第 ${+m.level} 關`, pct(m.students, m.d), '', `${+m.students}／${m.d} 人`)).join('');
     $('#ad-quiz').className = 'quiz-stats';
     $('#ad-quiz').innerHTML = `
-      <div class="table-wrap"><table class="roster"><thead><tr><th>關卡</th><th>作答人數</th><th>題次</th><th>答對率</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div><h4 style="margin:.5rem 0 .3rem">最常見的迷思</h4>
-      ${mis ? `<ol style="margin:0;padding-left:1.4rem">${mis}</ol>` : '<p class="hint">還沒有錯誤紀錄。</p>'}</div>`;
+      <div><h4 class="stats-h">各關答對率</h4><ul class="pct-list compact">${levels}</ul></div>
+      <div><h4 class="stats-h">最常見的迷思（犯過的人數比例）</h4>
+      ${mis ? `<ul class="pct-list compact">${mis}</ul>` : '<p class="hint">還沒有錯誤紀錄。</p>'}</div>`;
   }
 
   // ---------- 學生動態 ----------

@@ -36,7 +36,7 @@ export function points(ok, ms) {
 export async function renderQuizHub(view) {
   const avail = LEVELS.filter((l) => isUnlocked(`quiz${l.id}`));
   view.innerHTML = `
-    <div class="task"><h2>測驗區</h2><p>每關 5 題，每題答對 20 分，全對 100 分。答對時還有速度加分：15 秒內 +10、30 秒內 +5。每關最高 150 分，可以重玩，取最高分。</p></div>
+    <div class="task"><h2>測驗區</h2><p>每關 5 題，每題答對 20 分，全對 100 分。答對時還有速度加分：15 秒內 +10、30 秒內 +5。每關最高 150 分。可以重玩，成績以最新一次為準。</p></div>
     <div class="quiz-levels" id="qz-levels">
       ${LEVELS.map((l) => {
         const open = isUnlocked(`quiz${l.id}`);
@@ -59,9 +59,9 @@ export async function renderQuizHub(view) {
     if (!boardEl.isConnected) return;   // 等待期間已切換到別的畫面
     for (const [lv, sc] of Object.entries(best || {})) {
       const el = view.querySelector(`[data-best="${lv}"]`);
-      if (el) el.textContent = `最高 ${sc}`;
+      if (el) el.textContent = `成績 ${sc}`;
     }
-  } catch (_) { /* 顯示不出最高分不影響作答 */ }
+  } catch (_) { /* 顯示不出成績不影響作答 */ }
   renderBoard(boardEl);
 }
 
@@ -85,6 +85,8 @@ export function playLevel(view, level) {
   const seen = loadSeen(level);
   const qs = makeLevel(level, seen);
   const st = { i: 0, score: 0, correct: 0, ms: 0, t0: 0, answered: false };
+  // 本次作答編號：後端收到新的編號時，會刪掉這個人這一關之前的作答紀錄（重作就覆蓋）
+  const att = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
   view.innerHTML = `
     <div class="quiz">
@@ -120,6 +122,7 @@ export function playLevel(view, level) {
     $('#qz-choices').innerHTML = q.choices.map((c, i) => `<button type="button" class="btn choice" data-i="${i}">${c.html}</button>`).join('');
     $('#qz-fb').textContent = ''; $('#qz-fb').className = 'msg';
     $('#qz-next').hidden = true;
+    $('#qz-spdbar').classList.remove('is-off');
     st.t0 = performance.now();
     tick();
   }
@@ -150,6 +153,9 @@ export function playLevel(view, level) {
     const ms = Math.round(performance.now() - st.t0);
     const ok = picked === q.answer;
     const p = points(ok, ms);
+    // 速度條停在這一題實際拿到的速度分（答錯是 +0，條變灰）
+    $('#qz-spd').textContent = `+${p.speed}`;
+    $('#qz-spdbar').classList.toggle('is-off', !ok);
     st.score += p.total; st.correct += ok ? 1 : 0; st.ms += ms;
     $('#qz-score').textContent = st.score;
     view.querySelectorAll('.choice').forEach((b, i) => {
@@ -170,7 +176,7 @@ export function playLevel(view, level) {
       rpc('log_event', {
         tok: session.token, pg: `quiz${level}`, k: 'answer', ok,
         p: {
-          sig: q.sig, level, type: q.type, prompt: q.promptText, promptHtml: q.prompt, graph: q.graph,
+          sig: q.sig, att, level, type: q.type, prompt: q.promptText, promptHtml: q.prompt, graph: q.graph,
           choices: q.choices.map((c) => ({ text: c.text, html: c.html, mis: c.mis })),
           answer: q.answer, picked, pickedText: q.choices[picked].text,
           mis: ok ? null : (q.choices[picked].mis || 'other'), explain: q.explain, ms,
@@ -206,7 +212,7 @@ export function playLevel(view, level) {
     const bestEl = view.querySelector('#qz-best'), boardEl = view.querySelector('#qz-board');
     try {
       const best = await rpc('submit_quiz', { tok: session.token, lv: level, sc: st.score, cor: st.correct, dur: st.ms });
-      bestEl.textContent = session.token ? `這一關你的最高分是 ${best}。` : '（管理員示範：成績不列入排行榜）';
+      bestEl.textContent = session.token ? `已記錄這一關的成績 ${best} 分（重玩會以最新一次為準）。` : '（管理員示範：成績不列入排行榜）';
     } catch (e) { bestEl.textContent = `成績送出失敗：${e.message}`; }
     if (boardEl.isConnected) renderBoard(boardEl);
   }

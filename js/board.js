@@ -55,15 +55,19 @@ export function mountBoard(view) {
   const body = view.querySelector('#bd-body');
   let tab = 'rank', data = null, detail = null, reveal = false;
   let lvSel = 0;   // 迷思統計、錯題的關卡篩選（0 = 全部）；自動更新時保留
-  let misSel = '';   // 錯題的迷思篩選（'' = 全部迷思）
+  let misSel = '';   // 錯題的迷思篩選（'' = 全部迷思）；從迷思統計點進來時會帶入
 
+  function setTab(name) {
+    tab = name; detail = null; reveal = false;
+    view.querySelectorAll('#bd-tabs a').forEach((x) => x.classList.toggle('active', x.dataset.tab === name));
+    if (tab === 'here') { body.innerHTML = '<div class="placeholder">載入中…</div>'; loadHere(); } else render();
+  }
   view.querySelector('#bd-tabs').addEventListener('click', (e) => {
     const a = e.target.closest('[data-tab]');
     if (!a) return;
     e.preventDefault();
-    tab = a.dataset.tab; detail = null; reveal = false;
-    view.querySelectorAll('#bd-tabs a').forEach((x) => x.classList.toggle('active', x === a));
-    if (tab === 'here') { body.innerHTML = '<div class="placeholder">載入中…</div>'; loadHere(); } else render();
+    if (a.dataset.tab === 'mis') misSel = '';
+    setTab(a.dataset.tab);
   });
 
   // 只保留格式正確的錯題紀錄
@@ -118,49 +122,58 @@ export function mountBoard(view) {
       : '<div class="placeholder">還沒有人完成關卡。</div>';
   }
 
-  // 關卡小分頁：「全部」＋第 1～5 關，旁邊標出數量
-  function levelTabs(countOf) {
-    const btn = (id, label, n) => `<button type="button" class="lvtab${lvSel === id ? ' active' : ''}" data-lv="${id}">${label}${n ? `<span class="lvtab-n">${n}</span>` : ''}</button>`;
-    return `<nav class="lvtabs" aria-label="選擇關卡">${btn(0, '全部', 0)}${LEVELS.map((l) => btn(l.id, `第 ${l.id} 關`, countOf(l.id))).join('')}</nav>`;
-  }
-  function bindLevelTabs() {
-    body.querySelectorAll('.lvtab[data-lv]').forEach((b) => b.addEventListener('click', () => { lvSel = +b.dataset.lv; render(); }));
-  }
+  // ---------- 共用：百分比長條（百分比為主，人數為輔） ----------
+  const pctOf = (n, d) => (d ? Math.round((n / d) * 100) : 0);
+  const pctRow = ({ label, sub, n, d, attrs = '', cls = '' }) => `
+    <li class="pct-row ${cls}" ${attrs}>
+      <div class="pct-text"><span class="pct-label">${label}</span>${sub ? `<span class="pct-sub">${sub}</span>` : ''}</div>
+      <div class="pct-bar"><span style="width:${pctOf(n, d)}%"></span></div>
+      <div class="pct-num"><strong>${d ? `${pctOf(n, d)}%` : '—'}</strong><span>${+n}／${+d} 人</span></div>
+    </li>`;
   const levelStat = (id) => (data.levels || []).find((x) => x.level === id);
-  const pct = (n, d) => (d ? `${Math.round((n / d) * 100)}%` : '—');
+  const playersOf = (id) => levelStat(id)?.players || 0;
 
-  function renderMis() {
-    const all = data.mis || [];
-    const shown = LEVELS.filter((l) => !lvSel || l.id === lvSel);
-    const groups = shown.map((l) => {
-      const s = levelStat(l.id);
-      // 同一關的迷思：先比犯錯人數，再比次數
-      const items = all.filter((m) => +m.level === l.id).sort((x, y) => y.students - x.students || y.count - x.count);
-      const max = Math.max(1, ...items.map((m) => m.students));
-      return `
-        <section class="mis-group">
-          <h3>${esc(lvName(l.id))}<span class="hint">　答對率 ${s ? pct(s.correct, s.answers) : '—'}・${s ? `${s.players} 人作答` : '還沒有人作答'}</span></h3>
-          ${items.length ? `<ul class="bars">${items.map((m) => `
-            <li><span class="bar-label">${esc(MIS[m.mis] || m.mis)}</span>
-              <span class="bar"><span style="width:${(m.students / max) * 100}%"></span></span>
-              <span class="bar-num"><strong>${+m.students} 人</strong><span class="hint">${+m.count} 次・${s ? pct(m.count, s.answers) : '—'}</span></span></li>`).join('')}</ul>`
-            : '<p class="hint">這一關目前沒有錯誤紀錄。</p>'}
-        </section>`;
-    }).join('');
-    body.innerHTML = `
-      <div class="stat-row">${LEVELS.map((l) => {
-        const s = levelStat(l.id);
-        return `<div class="stat"><div class="hint">第 ${l.id} 關</div><div class="stat-num">${s ? pct(s.correct, s.answers) : '—'}</div>
-          <div class="hint">${s ? `${s.players} 人・${s.answers} 題次` : '還沒有人作答'}</div></div>`;
-      }).join('')}</div>
-      <h3 style="margin:1rem 0 .4rem">全班最常犯的迷思</h3>
-      <p class="hint">依犯錯人數由多到少排列；百分比是佔該關所有作答題次的比例。</p>
-      ${levelTabs((id) => all.filter((m) => +m.level === id).length)}
-      ${groups}`;
-    bindLevelTabs();
+  // 關卡卡片：大字答對率＋細長條；點卡片篩選該關，再點一次回到全部
+  function levelCards() {
+    return `<div class="lv-cards">${LEVELS.map((l) => {
+      const s = levelStat(l.id), r = s ? pctOf(s.correct, s.answers) : null;
+      return `<button type="button" class="lv-card${lvSel === l.id ? ' active' : ''}" data-lv="${l.id}">
+        <span class="lv-card-t">第 ${l.id} 關</span>
+        <span class="lv-card-n">${r == null ? '—' : `${r}%`}</span>
+        <span class="pct-bar ok"><span style="width:${r || 0}%"></span></span>
+        <span class="lv-card-s">${s ? `答對率・${s.players} 人作答` : '還沒有人作答'}</span>
+      </button>`;
+    }).join('')}</div>`;
+  }
+  function bindLevelCards() {
+    body.querySelectorAll('.lv-card[data-lv]').forEach((b) => b.addEventListener('click', () => {
+      lvSel = lvSel === +b.dataset.lv ? 0 : +b.dataset.lv; misSel = ''; render();
+    }));
   }
 
-  // 一道錯題中，各迷思被選了幾次（依學生選的錯誤選項對應的迷思計算）
+  // 迷思統計：每個迷思有百分之幾的作答學生犯過（犯過的人數 ÷ 該關作答人數）
+  function renderMis() {
+    const items = (data.mis || [])
+      .filter((m) => !lvSel || +m.level === lvSel)
+      .map((m) => ({ ...m, d: playersOf(+m.level) }))
+      .sort((x, y) => pctOf(y.students, y.d) - pctOf(x.students, x.d) || y.students - x.students);
+    body.innerHTML = `
+      ${levelCards()}
+      <h3 class="board-h">${lvSel ? esc(lvName(lvSel)) : '全部關卡'}：最常犯的迷思</h3>
+      <p class="hint">百分比＝犯過這個迷思的人數 ÷ 這一關的作答人數。點一個迷思可以看相關的錯題。</p>
+      ${items.length ? `<ul class="pct-list">${items.map((m) => pctRow({
+        label: esc(MIS[m.mis] || m.mis), sub: lvSel ? '' : `第 ${+m.level} 關`, n: m.students, d: m.d,
+        cls: 'clickable', attrs: `data-mis="${esc(m.mis)}" data-mlv="${+m.level}" tabindex="0"`,
+      })).join('')}</ul>` : `<div class="placeholder">${lvSel ? '這一關目前沒有錯誤紀錄。' : '還沒有錯誤紀錄。'}</div>`}`;
+    bindLevelCards();
+    body.querySelectorAll('.pct-row[data-mis]').forEach((li) => {
+      const go = () => { lvSel = +li.dataset.mlv; misSel = li.dataset.mis; setTab('wrong'); };
+      li.addEventListener('click', go);
+      li.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    });
+  }
+
+  // 一道錯題中，各迷思被幾個人選了（依學生選的錯誤選項對應的迷思計算）
   function misCountsOf(w) {
     const out = {};
     for (const c of w.q.choices || []) {
@@ -169,59 +182,51 @@ export function mountBoard(view) {
     }
     return out;
   }
+  const topMis = (w) => Object.entries(misCountsOf(w)).sort((x, y) => y[1] - x[1])[0]?.[0];
 
-  function wrongItem(w, i, misKey) {
-    const n = misKey ? misCountsOf(w)[misKey] : w.wrong;
-    return `
-      <li><button type="button" class="wrong-item" data-i="${i}">
-        <span class="tag">${lvName(+w.q.level)}</span>
-        <span class="wrong-prompt">${safeHTML(w.q.promptHtml)}${w.q.graph ? '<span class="hint">（看圖題）</span>' : ''}</span>
-        <span class="wrong-n"><strong>${+n}</strong> 人次${misKey ? '選了這個錯誤' : '答錯'} / ${+w.answers}<span class="hint">　錯誤率 ${pct(w.wrong, w.answers)}</span></span>
-      </button></li>`;
-  }
-
+  // 錯題：題目為主，答錯率為輔；迷思用下拉選單篩選
   function renderWrongList() {
-    const all = data.wrong || [];
-    const inLevel = all.filter((w) => !lvSel || +w.q.level === lvSel);
-    // 這個關卡範圍內出現過的迷思，依人次排序
-    const misTotal = {};
-    for (const w of inLevel) for (const [m, n] of Object.entries(misCountsOf(w))) misTotal[m] = (misTotal[m] || 0) + n;
-    const misKeys = Object.keys(misTotal).sort((x, y) => misTotal[y] - misTotal[x]);
-    if (misSel && !misTotal[misSel]) misSel = '';
-    const misTabs = misKeys.length ? `<nav class="lvtabs mis-tabs" aria-label="選擇迷思">
-        <button type="button" class="lvtab${!misSel ? ' active' : ''}" data-mis="">全部迷思</button>
-        ${misKeys.map((m) => `<button type="button" class="lvtab${misSel === m ? ' active' : ''}" data-mis="${esc(m)}">${esc(MIS[m] || m)}<span class="lvtab-n">${misTotal[m]}</span></button>`).join('')}
-      </nav>` : '';
-
-    const shown = [];   // 依畫面順序記錄題目，給點擊用
-    const listOf = (items, misKey) => `<ul class="wrong-list">${items.map((w) => { shown.push(w); return wrongItem(w, shown.length - 1, misKey); }).join('')}</ul>`;
-    let content;
-    if (!inLevel.length) content = `<div class="placeholder">${lvSel ? '這一關目前沒有錯題。' : '還沒有錯題。'}</div>`;
-    else if (misSel) {
-      const items = inLevel.filter((w) => misCountsOf(w)[misSel]).sort((x, y) => misCountsOf(y)[misSel] - misCountsOf(x)[misSel]);
-      content = listOf(items, misSel);
-    } else {
-      // 全部迷思：依迷思分組；同一題可能出現在多個組（不同錯誤選項對應不同迷思）
-      content = misKeys.map((m) => {
-        const items = inLevel.filter((w) => misCountsOf(w)[m]).sort((x, y) => misCountsOf(y)[m] - misCountsOf(x)[m]);
-        return `<section class="mis-group"><h3>${esc(MIS[m] || m)}<span class="hint">　共 ${misTotal[m]} 人次・${items.length} 題</span></h3>${listOf(items, m)}</section>`;
-      }).join('');
-    }
+    const inLevel = (data.wrong || []).filter((w) => !lvSel || +w.q.level === lvSel);
+    const misKeys = [...new Set(inLevel.flatMap((w) => Object.keys(misCountsOf(w))))];
+    if (misSel && !misKeys.includes(misSel)) misSel = '';
+    const items = inLevel
+      .filter((w) => !misSel || misCountsOf(w)[misSel])
+      .sort((x, y) => y.wrong - x.wrong || pctOf(y.wrong, y.answers) - pctOf(x.wrong, x.answers));
     body.innerHTML = `
-      <p class="hint">先選關卡，再選迷思。點一題可以放大投影，先讓同學討論，再按「顯示正解」。</p>
-      ${levelTabs((id) => all.filter((w) => +w.q.level === id).length)}
-      ${misTabs}
-      ${content}`;
-    bindLevelTabs();
-    body.querySelectorAll('[data-mis]').forEach((b) => b.addEventListener('click', () => { misSel = b.dataset.mis; render(); }));
+      ${levelCards()}
+      <div class="board-filter">
+        <h3 class="board-h">${lvSel ? esc(lvName(lvSel)) : '全部關卡'}：錯題</h3>
+        ${misKeys.length ? `<label class="hint">迷思
+          <select class="numbox" id="bd-mis">
+            <option value="">全部迷思</option>
+            ${misKeys.map((m) => `<option value="${esc(m)}" ${misSel === m ? 'selected' : ''}>${esc(MIS[m] || m)}</option>`).join('')}
+          </select></label>` : ''}
+      </div>
+      <p class="hint">依答錯人數排序。點一題可以放大投影，先讓同學討論，再按「顯示正解」。</p>
+      ${items.length ? `<ul class="wrong-list">${items.map((w, i) => {
+        const tm = topMis(w), r = pctOf(w.wrong, w.answers);
+        return `<li><button type="button" class="wrong-item" data-i="${i}">
+          <span class="wrong-main">
+            <span class="wrong-prompt">${safeHTML(w.q.promptHtml)}${w.q.graph ? '<span class="hint">（看圖題）</span>' : ''}</span>
+            <span class="pct-sub">${esc(lvName(+w.q.level))}${tm ? `・最多人選的錯誤：${esc(MIS[tm] || tm)}` : ''}</span>
+          </span>
+          <span class="wrong-pct">
+            <strong>${r}%</strong>
+            <span class="pct-bar bad"><span style="width:${r}%"></span></span>
+            <span class="pct-sub">答錯 ${+w.wrong}／${+w.answers} 人</span>
+          </span>
+        </button></li>`;
+      }).join('')}</ul>` : `<div class="placeholder">${lvSel ? '這一關目前沒有錯題。' : '還沒有錯題。'}</div>`}`;
+    bindLevelCards();
+    body.querySelector('#bd-mis')?.addEventListener('change', (e) => { misSel = e.target.value; render(); });
     body.querySelectorAll('.wrong-item').forEach((b) => b.addEventListener('click', () => {
-      detail = shown[+b.dataset.i]; reveal = false; render();
+      detail = items[+b.dataset.i]; reveal = false; render();
     }));
   }
 
   function renderDetail() {
     const w = detail, q = w.q;
-    const total = Object.values(w.picks || {}).reduce((s, n) => s + n, 0) || 1;
+    const total = w.answers || Object.values(w.picks || {}).reduce((s, n) => s + n, 0);
     body.innerHTML = `
       <div class="spot">
         <div class="row" style="justify-content:space-between">
@@ -231,12 +236,12 @@ export function mountBoard(view) {
         <div class="spot-prompt">${safeHTML(q.promptHtml)}</div>
         <div id="bd-graph"></div>
         <ul class="spot-choices">${q.choices.map((c, i) => {
-          const n = (w.picks || {})[c.text] || 0;
+          const n = +((w.picks || {})[c.text] || 0);
           const right = i === q.answer;
           return `<li class="${reveal ? (right ? 'right' : 'wrong') : ''}">
             <span class="spot-choice">${String.fromCharCode(65 + i)}．${safeHTML(c.html)}</span>
-            <span class="bar"><span style="width:${(n / total) * 100}%"></span></span>
-            <span class="mono">${n} 人次</span>
+            <span class="bar"><span style="width:${pctOf(n, total)}%"></span></span>
+            <span class="pct-num"><strong>${pctOf(n, total)}%</strong><span>${n} 人</span></span>
             ${reveal && !right && c.mis ? `<span class="spot-mis">選這個通常是因為：${esc(MIS[c.mis] || c.mis)}</span>` : ''}
           </li>`;
         }).join('')}</ul>
