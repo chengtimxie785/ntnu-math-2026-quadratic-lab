@@ -1,9 +1,10 @@
-// 大螢幕看板（#/board，只有管理員能開）：排行榜、迷思統計、錯題
-// 錯題畫面不顯示任何暱稱或學號，避免答錯的同學被認出來
+// 大螢幕看板（#/board，只有管理員能開）：排行榜、迷思統計、錯題、學生動態
+// 錯題畫面不顯示任何暱稱或學號，避免答錯的同學被認出來；學生動態只顯示各頁人數，不顯示名字或暱稱
 
 import { session, rpc, loginGoogle } from './backend.js';
 import { MIS, LEVELS } from './quiz/mis.js';
 import { drawGraph } from './quiz/quiz.js';
+import { ONLINE_SEC, countByPage } from './presence.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // 作答紀錄是學生端送上來的，題目 HTML 不能直接信任：只保留題目會用到的 sup、br、span（只留 class），其餘一律轉成純文字
@@ -47,6 +48,7 @@ export function mountBoard(view) {
         <a href="#" data-tab="rank" class="active">排行榜</a>
         <a href="#" data-tab="mis">迷思統計</a>
         <a href="#" data-tab="wrong">錯題</a>
+        <a href="#" data-tab="here">學生動態</a>
       </nav>
       <div id="bd-body"><div class="placeholder">載入中…</div></div>
     </div>`;
@@ -61,7 +63,7 @@ export function mountBoard(view) {
     e.preventDefault();
     tab = a.dataset.tab; detail = null; reveal = false;
     view.querySelectorAll('#bd-tabs a').forEach((x) => x.classList.toggle('active', x === a));
-    render();
+    if (tab === 'here') { body.innerHTML = '<div class="placeholder">載入中…</div>'; loadHere(); } else render();
   });
 
   // 只保留格式正確的錯題紀錄
@@ -77,7 +79,29 @@ export function mountBoard(view) {
     catch (e) { body.innerHTML = `<div class="msg bad">${esc(e.message)}</div>`; }
   }
 
+  // 學生動態：只拿人數，不顯示名字
+  let here = null;
+  async function loadHere() {
+    try { here = countByPage(await rpc('admin_presence')); if (tab === 'here') renderHere(); }
+    catch (e) { if (tab === 'here') body.innerHTML = `<div class="msg bad">${esc(/admin_presence/.test(e.message) ? '尚未執行 update_presence.sql。' : e.message)}</div>`; }
+  }
+  function renderHere() {
+    const max = Math.max(1, ...here.pages.map((p) => p.n));
+    body.innerHTML = `
+      <div class="stat-row">
+        <div class="stat"><div class="hint">在線</div><div class="stat-num">${here.online}</div><div class="hint">人</div></div>
+        <div class="stat"><div class="hint">離線</div><div class="stat-num">${here.offline}</div><div class="hint">超過 ${ONLINE_SEC} 秒沒回報</div></div>
+      </div>
+      <h3 style="margin:1rem 0 .4rem">大家現在在哪一頁</h3>
+      ${here.pages.length ? `<ul class="bars">${here.pages.map((p) => `
+        <li><span class="bar-label">${esc(p.name)}</span>
+          <span class="bar"><span style="width:${(p.n / max) * 100}%"></span></span>
+          <span class="bar-num"><strong>${p.n} 人</strong></span></li>`).join('')}</ul>`
+        : '<div class="placeholder">目前沒有學生在線。</div>'}`;
+  }
+
   function render() {
+    if (tab === 'here') { if (here) renderHere(); return; }
     if (!data) return;
     if (tab === 'rank') renderRank();
     else if (tab === 'mis') renderMis();
@@ -229,6 +253,7 @@ export function mountBoard(view) {
   // 自動更新（看單一錯題時不更新，避免畫面跳動）
   const t = setInterval(() => {
     if (!view.contains(body)) { clearInterval(t); return; }
-    if (!detail) load();
+    if (tab === 'here') loadHere();
+    else if (!detail) load();
   }, 5000);
 }

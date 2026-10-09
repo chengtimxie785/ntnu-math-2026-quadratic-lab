@@ -54,7 +54,7 @@ export function renderNickname(view, onDone) {
   view.innerHTML = `
     <div class="auth">
       <h1>取一個暱稱</h1>
-      <p>暱稱會出現在排行榜等全班看得到的畫面上，請不要用本名，1 到 8 個字。</p>
+      <p>暱稱會出現在排行榜等全班看得到的畫面上，請不要用本名，1 到 8 個字，不能和別人重複。</p>
       <form id="nk-form" class="card auth-form">
         <label>暱稱 <input id="nk-in" class="numbox" maxlength="8" required value="${esc(session.me?.nickname || '')}"></label>
         <button type="submit" class="btn primary wide">確定</button>

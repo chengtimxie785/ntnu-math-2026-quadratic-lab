@@ -10,7 +10,7 @@ create table if not exists public.quiz_attempts (
   student_id text references public.roster(student_id) on delete cascade,
   demo       boolean not null default false,
   level      int not null check (level between 1 and 5),
-  score      int not null check (score between 0 and 1150),   -- 5 題 ×（100 + 連對 80 + 速度 50）
+  score      int not null check (score between 0 and 150),    -- 5 題 ×（20 + 速度 10）；2026-10-09 起的規則
   correct    int not null check (correct between 0 and 5),
   total      int not null default 5,
   ms         int not null default 0,
@@ -28,7 +28,7 @@ declare
   best int;
 begin
   if sid is null and not adm then raise exception '請重新登入' using errcode = 'P0001'; end if;
-  if lv not between 1 and 5 or sc not between 0 and 1150 or cor not between 0 and 5 then
+  if lv not between 1 and 5 or cor not between 0 and 5 or sc not between 20 * cor and 30 * cor then
     raise exception '成績格式不正確' using errcode = 'P0001';
   end if;
   insert into public.quiz_attempts (student_id, demo, level, score, correct, ms)

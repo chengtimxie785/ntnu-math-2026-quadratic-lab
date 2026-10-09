@@ -1,7 +1,7 @@
 // 測驗區：關卡列表、作答、結算、排行榜
 //
-// 計分：答對 100；連續答對第 2 題起每題 +20（最多 +80）；
-//       速度加分（答對才有）＝ 50 ×（15 秒 − 作答時間）÷ 15 秒，依比例遞減，15 秒以上為 0
+// 計分：每題答對 20 分（5 題全對 100）；
+//       速度加分（答對才有，每題各自計時）：15 秒內 +10、30 秒內 +5，30 秒以上 0；每關最高 150
 // 每一題的作答（含完整題目）都寫進後端 events，老師端可以看錯題與迷思統計
 
 import { makeLevel } from './gen.js';
@@ -23,21 +23,20 @@ function saveSeen(lv, set) {
 }
 
 // ---------- 計分 ----------
-export const SPEED_MAX = 50, SPEED_MS = 15000;
-export const speedBonus = (ms) => Math.round(SPEED_MAX * Math.max(0, SPEED_MS - ms) / SPEED_MS);
+export const BASE = 20, FAST_MS = 15000, SLOW_MS = 30000;
+export const speedBonus = (ms) => (ms < FAST_MS ? 10 : ms < SLOW_MS ? 5 : 0);
 
-export function points(ok, streak, ms) {
-  if (!ok) return { base: 0, combo: 0, speed: 0, total: 0 };
-  const combo = Math.min(80, 20 * (streak - 1));
+export function points(ok, ms) {
+  if (!ok) return { base: 0, speed: 0, total: 0 };
   const speed = speedBonus(ms);
-  return { base: 100, combo, speed, total: 100 + combo + speed };
+  return { base: BASE, speed, total: BASE + speed };
 }
 
 // ---------- 關卡列表 ----------
 export async function renderQuizHub(view) {
   const avail = LEVELS.filter((l) => isUnlocked(`quiz${l.id}`));
   view.innerHTML = `
-    <div class="task"><h2>測驗區</h2><p>每關 5 題。答對得 100 分；連續答對每題多 +20（最多 +80）；答得越快，速度加分越多（最多 +50，15 秒後歸零）。每關可以重玩，取最高分。</p></div>
+    <div class="task"><h2>測驗區</h2><p>每關 5 題，每題答對 20 分，全對 100 分。答對時還有速度加分：15 秒內 +10、30 秒內 +5。每關最高 150 分，可以重玩，取最高分。</p></div>
     <div class="quiz-levels" id="qz-levels">
       ${LEVELS.map((l) => {
         const open = isUnlocked(`quiz${l.id}`);
@@ -85,7 +84,7 @@ export function playLevel(view, level) {
   if (!info) { location.hash = '#/quiz'; return; }
   const seen = loadSeen(level);
   const qs = makeLevel(level, seen);
-  const st = { i: 0, score: 0, streak: 0, correct: 0, ms: 0, t0: 0, answered: false };
+  const st = { i: 0, score: 0, correct: 0, ms: 0, t0: 0, answered: false };
 
   view.innerHTML = `
     <div class="quiz">
@@ -95,11 +94,10 @@ export function playLevel(view, level) {
       </div>
       <div class="quiz-bar">
         <span id="qz-prog" class="mono"></span>
-        <span id="qz-combo"></span>
         <span class="mono">分數 <strong id="qz-score">0</strong></span>
       </div>
       <div class="progress"><span id="qz-pbar"></span></div>
-      <div class="speed" aria-hidden="true"><span class="speed-label">速度加分 <strong id="qz-spd">+50</strong></span><span class="speed-bar"><span id="qz-spdbar"></span></span></div>
+      <div class="speed" aria-hidden="true"><span class="speed-label">速度加分 <strong id="qz-spd">+10</strong></span><span class="speed-bar"><span id="qz-spdbar"></span></span></div>
       <section class="card quiz-q">
         <div class="quiz-prompt" id="qz-prompt"></div>
         <div id="qz-graph"></div>
@@ -115,7 +113,6 @@ export function playLevel(view, level) {
     st.answered = false;
     $('#qz-prog').textContent = `第 ${st.i + 1} / ${qs.length} 題`;
     $('#qz-pbar').style.width = `${(st.i / qs.length) * 100}%`;
-    $('#qz-combo').textContent = st.streak >= 2 ? `🔥 連對 ${st.streak}` : '';
     $('#qz-prompt').innerHTML = q.prompt;
     const g = $('#qz-graph');
     g.innerHTML = '';
@@ -127,7 +124,7 @@ export function playLevel(view, level) {
     tick();
   }
 
-  // 速度加分即時倒數（答題後停止）
+  // 速度加分即時倒數（答題後停止）：+10 → 15 秒時 +5 → 30 秒時 +0
   let timer = null;
   function tick() {
     cancelAnimationFrame(timer);
@@ -138,7 +135,7 @@ export function playLevel(view, level) {
       const lbl = $('#qz-spd'), bar = $('#qz-spdbar');
       if (!lbl) return;
       lbl.textContent = `+${b}`;
-      bar.style.width = `${(Math.max(0, SPEED_MS - ms) / SPEED_MS) * 100}%`;
+      bar.style.width = `${(Math.max(0, SLOW_MS - ms) / SLOW_MS) * 100}%`;
       if (b > 0) timer = requestAnimationFrame(step);
     };
     timer = requestAnimationFrame(step);
@@ -152,11 +149,9 @@ export function playLevel(view, level) {
     const picked = +btn.dataset.i;
     const ms = Math.round(performance.now() - st.t0);
     const ok = picked === q.answer;
-    st.streak = ok ? st.streak + 1 : 0;
-    const p = points(ok, st.streak, ms);
+    const p = points(ok, ms);
     st.score += p.total; st.correct += ok ? 1 : 0; st.ms += ms;
     $('#qz-score').textContent = st.score;
-    $('#qz-combo').textContent = st.streak >= 2 ? `🔥 連對 ${st.streak}` : '';
     view.querySelectorAll('.choice').forEach((b, i) => {
       b.disabled = true;
       if (i === q.answer) b.classList.add('right');
@@ -165,7 +160,7 @@ export function playLevel(view, level) {
     const fb = $('#qz-fb');
     fb.className = `msg ${ok ? 'ok' : 'bad'}`;
     fb.innerHTML = ok
-      ? `<strong>答對了！+${p.total}</strong>　<span class="hint">（答對 100${p.combo ? `、連對 +${p.combo}` : ''}${p.speed ? `、速度 +${p.speed}` : ''}）</span><br>${esc(q.explain)}`
+      ? `<strong>答對了！+${p.total}</strong>　<span class="hint">（答對 ${p.base}${p.speed ? `、速度 +${p.speed}` : ''}）</span><br>${esc(q.explain)}`
       : `<strong>答錯了</strong><br>${esc(q.explain)}`;
     $('#qz-next').textContent = st.i + 1 < qs.length ? '下一題' : '看結果';
     $('#qz-next').hidden = false;

@@ -6,7 +6,7 @@ import { mountAxis } from './axis.js';
 import { mountFlip } from './flip.js';
 import { mountFold } from './foldlab.js';
 import { isUnlocked, isAdmin, onSettings } from './settings.js';
-import { init, session, loggedIn, logout, startPolling } from './backend.js';
+import { init, session, loggedIn, logout, startPolling, reportPage } from './backend.js';
 import { renderLogin, renderNickname } from './login.js';
 import { mountAdmin } from './admin.js';
 import { renderQuizHub, playLevel } from './quiz/quiz.js';
@@ -143,10 +143,12 @@ function route() {
   if (nav === 'admin') { mountAdmin(view); return; }               // 管理頁自己處理 Google 登入
   if (nav === 'board') { mountBoard(view); return; }               // 大螢幕看板（管理員）
   if (!loggedIn()) { current = { page: null, login: true, loginMode: session.loginMode }; renderLogin(view, afterLogin); return; }
-  if (session.me && !session.me.nickname) { renderNickname(view, route); return; }
+  if (session.me && !session.me.nickname) { renderNickname(view, route); reportPage('nickname'); return; }
   if (nav === 'lab') renderLab(parts[1]);
   else if (nav === 'quiz') renderQuiz(parts[1]);
   else renderHome();
+  // 學生動態：回報實際顯示的頁面（plot、quiz3、quizhub…；首頁是 home）
+  reportPage(current.page || 'home');
 }
 
 function afterLogin() {

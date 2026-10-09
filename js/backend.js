@@ -19,6 +19,7 @@ export const session = {
   email: null,        // Google 登入的 email
   offline: false,     // 連不到 Supabase 時為 true（全部開放、無法登入）
   loginMode: 'normal',
+  here: null,         // 目前所在頁面（回報給老師端的學生動態）
 };
 
 function store(key, val) {
@@ -140,8 +141,27 @@ export async function logout() {
   try { if (session.token) await rpc('logout', { tok: session.token }); } catch (_) { /* 已失效 */ }
   try { await (await client()).auth.signOut(); } catch (_) { /* 忽略 */ }
   store(TOKEN_KEY, null);
-  Object.assign(session, { token: null, me: null, admin: false, email: null });
+  Object.assign(session, { token: null, me: null, admin: false, email: null, here: null });
   setAdmin(false);
+}
+
+// 回報目前所在頁面（後端 ping 會記下頁面並回傳與 get_state 相同的內容）
+// 後端還沒執行 update_presence.sql 時，自動改回只呼叫 get_state
+let pingOK = true;
+async function fetchState() {
+  if (pingOK && session.token) {
+    try { return await rpc('ping', { tok: session.token, pg: session.here }); }
+    catch (e) { if (!/ping/.test(e.message)) throw e; pingOK = false; }
+  }
+  return rpc('get_state', { tok: session.token });
+}
+
+// 換頁時呼叫：頁面不同就立刻回報一次（只有學生 token 會被記錄）
+export function reportPage(pg) {
+  if (pg === session.here) return;
+  session.here = pg;
+  if (session.offline || !session.token || !pingOK) return;
+  rpc('ping', { tok: session.token, pg }).catch((e) => { if (/ping/.test(e.message)) pingOK = false; });
 }
 
 // 定期取得設定；身分失效（被老師登出、帳號停用、逾時）時呼叫 onLost
@@ -152,7 +172,7 @@ export function startPolling(onLost) {
   timer = setInterval(async () => {
     if (document.hidden) return;
     try {
-      const st = await rpc('get_state', { tok: session.token });
+      const st = await fetchState();
       const wasIn = loggedIn();
       applyState(st);
       if (wasIn && !loggedIn()) { store(TOKEN_KEY, null); session.token = null; onLost(); }

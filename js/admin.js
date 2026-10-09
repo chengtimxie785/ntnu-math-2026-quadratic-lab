@@ -1,9 +1,10 @@
 // 管理頁（只有 admins 表中的 Google 帳號能用）
-// 開放控制、顯示開關、登入模式、名單管理（含 PIN、臨時帳號）、管理員帳號、清除紀錄
+// 學生動態、開放控制、顯示開關、登入模式、名單管理（含 PIN、臨時帳號）、管理員帳號、清除紀錄
 
 import { session, rpc, loginGoogle } from './backend.js';
 import { PAGE_NAMES, FLAGS } from './settings.js';
 import { MIS, LEVELS } from './quiz/mis.js';
+import { ONLINE_SEC, hereName, isOnline, countByPage, ago } from './presence.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ROLE = { student: '學生', teacher: '老師／助教' };
@@ -33,6 +34,13 @@ export function mountAdmin(view) {
         <button type="button" class="btn small" id="ad-refresh">重新整理</button>
       </div>
       <div class="msg" id="ad-msg" aria-live="polite"></div>
+
+      <section class="card">
+        <h3>學生動態 <span class="hint" id="ad-here-count"></span></h3>
+        <p class="hint">每 4 秒更新。超過 ${ONLINE_SEC} 秒沒有回報就算離線（關掉網頁、切到別的 App 或螢幕關掉）。點上面的頁面可以只看那一頁的人。</p>
+        <div class="lvtabs" id="ad-here-chips"></div>
+        <div class="table-wrap"><table class="roster" id="ad-here"></table></div>
+      </section>
 
       <section class="card">
         <h3>開放控制</h3>
@@ -129,6 +137,39 @@ export function mountAdmin(view) {
       <h4 style="margin:.8rem 0 .3rem">最常見的迷思</h4>
       ${mis ? `<ol style="margin:0;padding-left:1.4rem">${mis}</ol>` : '<p class="hint">還沒有錯誤紀錄。</p>'}`;
   }
+
+  // ---------- 學生動態 ----------
+  let here = [], hereSel = '';   // hereSel：頁面篩選（'' = 全部，'off' = 離線）
+  async function loadHere() {
+    try { here = await rpc('admin_presence'); renderHere(); }
+    catch (e) { $('#ad-here-count').textContent = /admin_presence/.test(e.message) ? '尚未執行 update_presence.sql。' : e.message; }
+  }
+  function renderHere() {
+    const c = countByPage(here);
+    if (hereSel && hereSel !== 'off' && !c.pages.some((p) => p.page === hereSel)) hereSel = '';
+    $('#ad-here-count').textContent = `在線 ${c.online} 人，離線 ${c.offline} 人`;
+    const chip = (id, label, n) => `<button type="button" class="lvtab${hereSel === id ? ' active' : ''}" data-here="${esc(id)}">${esc(label)}<span class="lvtab-n">${n}</span></button>`;
+    $('#ad-here-chips').innerHTML = chip('', '全部', here.length)
+      + c.pages.map((p) => chip(p.page, p.name, p.n)).join('')
+      + (c.offline ? chip('off', '離線', c.offline) : '');
+    const rows = here
+      .filter((s) => !hereSel || (hereSel === 'off' ? !isOnline(s) : isOnline(s) && s.page === hereSel))
+      .sort((x, y) => isOnline(y) - isOnline(x));
+    $('#ad-here').innerHTML = `
+      <thead><tr><th>學號</th><th>姓名</th><th>暱稱</th><th>所在頁面</th><th>最後回報</th></tr></thead>
+      <tbody>${rows.map((s) => `
+        <tr class="${isOnline(s) ? '' : 'inactive'}">
+          <td class="mono">${isOnline(s) ? '<span class="dot" title="在線"></span>' : ''}${esc(s.student_id)}${s.is_temp ? ' <span class="tag">臨時</span>' : ''}</td>
+          <td>${esc(s.name)}</td>
+          <td>${s.nickname ? esc(s.nickname) : '<span class="hint">未設定</span>'}</td>
+          <td>${isOnline(s) ? esc(hereName(s.page)) : `<span class="hint">${s.page ? `離線（最後在 ${esc(hereName(s.page))}）` : s.login ? '已登入，還沒有回報' : '未登入'}</span>`}</td>
+          <td class="hint">${ago(s.age)}</td>
+        </tr>`).join('') || '<tr><td colspan="5" class="hint">沒有符合的學生。</td></tr>'}</tbody>`;
+  }
+  $('#ad-here-chips').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-here]');
+    if (b) { hereSel = b.dataset.here; renderHere(); }
+  });
 
   function toggle(id, label, on) {
     return `<label class="switch"><input type="checkbox" data-id="${esc(id)}" ${on ? 'checked' : ''}><span class="track"></span><span>${esc(label)}</span></label>`;
@@ -234,6 +275,11 @@ export function mountAdmin(view) {
   });
 
   load();
+  loadHere();
+  const th = setInterval(() => {
+    if (!view.contains($('#ad-here'))) { clearInterval(th); return; }
+    if (!document.hidden) loadHere();
+  }, 4000);
   // 每 10 秒更新「登入中」人數（使用者正在輸入 email 時不更新，避免蓋掉）
   const t = setInterval(() => {
     if (!view.contains($('#ad-roster'))) { clearInterval(t); return; }
