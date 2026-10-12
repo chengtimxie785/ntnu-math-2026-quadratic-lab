@@ -1,7 +1,7 @@
 // 測驗區：關卡列表、作答、結算、排行榜
 //
 // 計分：每題答對 20 分（5 題全對 100）；
-//       速度加分（答對才有，每題各自計時）：15 秒內 +10、30 秒內 +5，30 秒以上 0；每關最高 150
+//       速度加分（答對才有，每題各自計時）：1～2 秒 +10、3～4 秒 +9、5～6 秒 +8……19～20 秒 +1，超過 20 秒 0；每關最高 150
 // 每一題的作答（含完整題目）都寫進後端 events，老師端可以看錯題與迷思統計
 
 import { makeLevel } from './gen.js';
@@ -23,8 +23,12 @@ function saveSeen(lv, set) {
 }
 
 // ---------- 計分 ----------
-export const BASE = 20, FAST_MS = 15000, SLOW_MS = 30000;
-export const speedBonus = (ms) => (ms < FAST_MS ? 10 : ms < SLOW_MS ? 5 : 0);
+// 秒數無條件進位（2.3 秒算第 3 秒），每 2 秒少 1 分
+export const BASE = 20, MAX_SPEED = 10, LIMIT_MS = 20000;
+export function speedBonus(ms) {
+  const sec = Math.max(1, Math.ceil(ms / 1000));
+  return Math.max(0, MAX_SPEED - Math.floor((sec - 1) / 2));
+}
 
 export function points(ok, ms) {
   if (!ok) return { base: 0, speed: 0, total: 0 };
@@ -36,7 +40,7 @@ export function points(ok, ms) {
 export async function renderQuizHub(view) {
   const avail = LEVELS.filter((l) => isUnlocked(`quiz${l.id}`));
   view.innerHTML = `
-    <div class="task"><h2>測驗區</h2><p>每關 5 題，每題答對 20 分，全對 100 分。答對時還有速度加分：15 秒內 +10、30 秒內 +5。每關最高 150 分。可以重玩，成績以最新一次為準。</p></div>
+    <div class="task"><h2>測驗區</h2><p>每關 5 題，每題答對 20 分，全對 100 分。答對時還有速度加分：2 秒內 +10，之後每 2 秒少 1 分，超過 20 秒就不加分。每關最高 150 分。可以重玩，成績以最新一次為準。</p></div>
     <div class="quiz-levels" id="qz-levels">
       ${LEVELS.map((l) => {
         const open = isUnlocked(`quiz${l.id}`);
@@ -127,7 +131,7 @@ export function playLevel(view, level) {
     tick();
   }
 
-  // 速度加分即時倒數（答題後停止）：+10 → 15 秒時 +5 → 30 秒時 +0
+  // 速度加分即時倒數（答題後停止）：+10 → 每 2 秒少 1 → 超過 20 秒 +0
   let timer = null;
   function tick() {
     cancelAnimationFrame(timer);
@@ -138,7 +142,7 @@ export function playLevel(view, level) {
       const lbl = $('#qz-spd'), bar = $('#qz-spdbar');
       if (!lbl) return;
       lbl.textContent = `+${b}`;
-      bar.style.width = `${(Math.max(0, SLOW_MS - ms) / SLOW_MS) * 100}%`;
+      bar.style.width = `${(Math.max(0, LIMIT_MS - ms) / LIMIT_MS) * 100}%`;
       if (b > 0) timer = requestAnimationFrame(step);
     };
     timer = requestAnimationFrame(step);
