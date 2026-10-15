@@ -2,7 +2,7 @@
 // 題目全部由程式隨機產生，正確答案由程式計算；每個錯誤選項都標上對應的迷思代碼（見 mis.js）
 //
 // 題目物件：
-//   { sig, level, type, prompt (HTML), promptText (純文字，存進作答紀錄), graph ({a,k,mark} 或 null),
+//   { sig, level, type, prompt (HTML), promptText (純文字，存進作答紀錄), graph ({a,k} 或 null),
 //     choices: [{ html, text, mis }], answer (正確選項索引), explain (解釋) }
 
 import { numHTML, eqHTML, eqText, fmt, toFraction } from '../format.js';
@@ -283,28 +283,24 @@ function level4() {
 }
 
 // ---------- 第 5 關：看圖選式子 ----------
+// 四個選項是同一組 |a|、|k| 的四種正負號組合，學生只要判斷 a、k 的正負，不需要代值
 const A5 = [-2, -1, -0.5, 0.5, 1, 2];
 function level5() {
   return Array.from({ length: 5 }, () => () => {
-    const a = pick(A5), k = ri(-4, 4);
-    // 標一個好讀的點：|a| = 1/2 時用 x = 2，否則用 x = 1
-    const mx = Math.abs(a) === 0.5 ? 2 : 1;
-    const mark = { x: mx, y: a * mx * mx + k };
-    const a2 = pick(A5.filter((v) => Math.sign(v) === Math.sign(a) && v !== a));
-    const k2 = k !== 0 ? -k : pick([-2, 2]);
-    const opts = uniq([
+    const a = pick(A5), k = ri(-5, 5, true);
+    const opts = [
       { ...fn(a, k), mis: null },
       { ...fn(-a, k), mis: 'sign_open' },
-      { ...fn(a2, k), mis: 'abs_size' },
-      { ...fn(a, k2), mis: 'read_k' },
-    ]);
+      { ...fn(a, -k), mis: 'read_k' },
+      { ...fn(-a, -k), mis: 'sign_both' },
+    ];
     return finalize({
       level: 5, type: 'graph', sig: `5:${a},${k}`,
       prompt: '下面是哪一個函數的圖形？',
-      promptText: `下面是哪一個函數的圖形？（圖形：${eqText(a, k)}，標出 ${pt(0, k)} 與 ${pt(mark.x, mark.y)}）`,
-      graph: { a, k, mark },
-      explain: `開口向${updown(a)}，所以 a ${a > 0 ? '> 0' : '< 0'}；${lowhigh(a)}在 ${pt(0, k)}，所以 k = ${fmt(k)}；` +
-        `再把 x = ${mx} 代入：${pt(mark.x, mark.y)} 在圖形上，得到 a = ${numS(a)}。答案是 ${eqText(a, k)}。`,
+      promptText: `下面是哪一個函數的圖形？（圖形：${eqText(a, k)}，標出 ${pt(0, k)}）`,
+      graph: { a, k },
+      explain: `開口向${updown(a)}，所以 a ${a > 0 ? '> 0' : '< 0'}；${lowhigh(a)}在 ${pt(0, k)}，所以 k ${k > 0 ? '> 0' : '< 0'}。` +
+        `答案是 ${eqText(a, k)}。`,
     }, opts);
   });
 }

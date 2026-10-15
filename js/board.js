@@ -30,7 +30,7 @@ function safeHTML(html) {
   return box.innerHTML;
 }
 // 圖形參數只接受數字
-const safeGraph = (g) => (g && [g.a, g.k, g.mark?.x, g.mark?.y].every(Number.isFinite) ? g : null);
+const safeGraph = (g) => (g && [g.a, g.k].every(Number.isFinite) ? { a: g.a, k: g.k } : null);
 
 const lvName = (n) => `第 ${n} 關 ${LEVELS.find((l) => l.id === n)?.name || ''}`;
 

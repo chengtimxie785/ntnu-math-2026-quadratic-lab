@@ -225,24 +225,18 @@ export function playLevel(view, level) {
 }
 
 // ---------- 第 5 關的圖 ----------
-export function drawGraph(container, { a, k, mark }) {
+export function drawGraph(container, { a, k }) {
   const top = a > 0 ? Math.max(k + 7, 2) : Math.max(k + 2, 2);
   const bottom = a > 0 ? Math.min(k - 2, -2) : Math.min(k - 7, -2);
   const plane = new Plane(container, { xmin: -5, xmax: 5, ymin: bottom, ymax: top, unit: 40, label: '函數圖形' });
   container.classList.add('quiz-graph');
   svgEl('path', { class: 'curve', d: plane.pathForFn((x) => a * x * x + k) }, plane.layers.curve);
   const u = plane.unit, fs = plane.fontSize;
-  // 標出的點一定在 y 軸右側（x = 1 或 2），所以頂點的坐標寫在左側：
-  // 開口向下時寫在左上、開口向上時寫在左下，避開曲線，也不會和右邊點的坐標疊在一起
-  const vertex = { x: 0, y: k };
-  for (const p of [vertex, mark]) {
-    svgEl('circle', { class: 'vertex', cx: plane.X(p.x), cy: plane.Y(p.y), r: u * 0.13 }, plane.layers.points);
-    const left = p === vertex;
-    const dy = left ? (a < 0 ? -u * 0.3 : u * 0.75) : -u * 0.25;
-    const t = svgEl('text', {
-      class: 'lbl', x: plane.X(p.x) + (left ? -u * 0.22 : u * 0.22), y: plane.Y(p.y) + dy,
-      'text-anchor': left ? 'end' : 'start', 'font-size': fs * 1.4,
-    }, plane.layers.marks);
-    t.textContent = `(${fmt(p.x)}, ${fmt(p.y)})`;
-  }
+  // 只標頂點；坐標寫在左側，開口向下時寫在左上、開口向上時寫在左下，避開曲線
+  svgEl('circle', { class: 'vertex', cx: plane.X(0), cy: plane.Y(k), r: u * 0.13 }, plane.layers.points);
+  const t = svgEl('text', {
+    class: 'lbl', x: plane.X(0) - u * 0.22, y: plane.Y(k) + (a < 0 ? -u * 0.3 : u * 0.75),
+    'text-anchor': 'end', 'font-size': fs * 1.4,
+  }, plane.layers.marks);
+  t.textContent = `(0, ${fmt(k)})`;
 }

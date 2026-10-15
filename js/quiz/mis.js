@@ -16,6 +16,7 @@ export const MIS = {
   size_reverse: '以為 |a| 愈大、開口愈大（關係弄反）',
   abs_size: '看圖時 |a| 判斷錯（沒用標出的點算出 a）',
   read_k: '從圖形讀錯 k（最高或最低點的 y 坐標）',
+  sign_both: 'a 與 k 的正負都判斷錯',
   shift_dir: '上下平移的方向搞反',
   k_to_a: '把 k 加到 x² 的係數上',
   shift_axis: '把上下平移當成左右平移',
