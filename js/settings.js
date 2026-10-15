@@ -17,6 +17,7 @@ export const PAGE_NAMES = {
   quiz3: '測驗 第 3 關 開口誰比較大',
   quiz4: '測驗 第 4 關 平移',
   quiz5: '測驗 第 5 關 看圖選式子',
+  quiz6: '測驗 第 6 關 綜合挑戰',
 };
 export const PAGES = Object.keys(PAGE_NAMES);
 

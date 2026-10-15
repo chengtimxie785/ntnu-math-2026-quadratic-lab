@@ -71,7 +71,7 @@ export function mountBoard(view) {
   });
 
   // 只保留格式正確的錯題紀錄
-  const validWrong = (w) => w && w.q && Array.isArray(w.q.choices) && Number.isInteger(+w.q.level) && +w.q.level >= 1 && +w.q.level <= 5
+  const validWrong = (w) => w && w.q && Array.isArray(w.q.choices) && Number.isInteger(+w.q.level) && +w.q.level >= 1 && +w.q.level <= 6
     && Number.isInteger(+w.q.answer) && w.picks && typeof w.picks === 'object';
 
   async function load() {

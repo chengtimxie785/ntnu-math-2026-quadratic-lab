@@ -1,7 +1,7 @@
 // 測驗區：關卡列表、作答、結算、排行榜
 //
-// 計分：每題答對 20 分（5 題全對 100）；
-//       速度加分（答對才有，每題各自計時）：1～2 秒 +10、3～4 秒 +9、5～6 秒 +8……19～20 秒 +1，超過 20 秒 0；每關最高 150
+// 計分：每題答對 20 分（第 1～5 關 5 題全對 100；第 6 關 10 題全對 200）；
+//       速度加分（答對才有，每題各自計時）：1～2 秒 +10、3～4 秒 +9、5～6 秒 +8……19～20 秒 +1，超過 20 秒 0；第 1～5 關最高 150、第 6 關最高 300
 // 每一題的作答（含完整題目）都寫進後端 events，老師端可以看錯題與迷思統計
 
 import { makeLevel } from './gen.js';
@@ -40,7 +40,7 @@ export function points(ok, ms) {
 export async function renderQuizHub(view) {
   const avail = LEVELS.filter((l) => isUnlocked(`quiz${l.id}`));
   view.innerHTML = `
-    <div class="task"><h2>測驗區</h2><p>每關 5 題，每題答對 20 分，全對 100 分。答對時還有速度加分：2 秒內 +10，之後每 2 秒少 1 分，超過 20 秒就不加分。每關最高 150 分。可以重玩，成績以最新一次為準。</p></div>
+    <div class="task"><h2>測驗區</h2><p>第 1～5 關每關 5 題，第 6 關是綜合挑戰，共 10 題。每題答對 20 分，答對時還有速度加分：2 秒內 +10，之後每 2 秒少 1 分，超過 20 秒就不加分。第 1～5 關最高 150 分，第 6 關最高 300 分。可以重玩，成績以最新一次為準。</p></div>
     <div class="quiz-levels" id="qz-levels">
       ${LEVELS.map((l) => {
         const open = isUnlocked(`quiz${l.id}`);
@@ -180,7 +180,7 @@ export function playLevel(view, level) {
       rpc('log_event', {
         tok: session.token, pg: `quiz${level}`, k: 'answer', ok,
         p: {
-          sig: q.sig, att, level, type: q.type, prompt: q.promptText, promptHtml: q.prompt, graph: q.graph,
+          sig: q.sig, att, level, src: q.src ?? level, type: q.type, prompt: q.promptText, promptHtml: q.prompt, graph: q.graph,
           choices: q.choices.map((c) => ({ text: c.text, html: c.html, mis: c.mis })),
           answer: q.answer, picked, pickedText: q.choices[picked].text,
           mis: ok ? null : (q.choices[picked].mis || 'other'), explain: q.explain, ms,

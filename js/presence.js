@@ -11,7 +11,7 @@ export const HERE_NAMES = {
   home: '首頁',
   ...Object.fromEntries(['plot', 'axis', 'a', 'flip', 'k', 'free'].map((id) => [id, PAGE_NAMES[id]])),
   quizhub: '測驗區 關卡列表',
-  ...Object.fromEntries([1, 2, 3, 4, 5].map((n) => [`quiz${n}`, PAGE_NAMES[`quiz${n}`]])),
+  ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`quiz${n}`, PAGE_NAMES[`quiz${n}`]])),
 };
 export const hereName = (pg) => HERE_NAMES[pg] || pg || '—';
 

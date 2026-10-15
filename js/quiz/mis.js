@@ -30,4 +30,5 @@ export const LEVELS = [
   { id: 3, name: '開口誰比較大', topic: '主題 2' },
   { id: 4, name: '平移', topic: '主題 2' },
   { id: 5, name: '看圖選式子', topic: '主題 2 綜合' },
+  { id: 6, name: '綜合挑戰', topic: '主題 1＋2 綜合，10 題' },
 ];

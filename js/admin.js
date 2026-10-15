@@ -12,7 +12,7 @@ const ROLE = { student: '學生', teacher: '老師／助教' };
 
 // 開放控制的短名稱（完整名稱放在滑鼠提示）
 const LAB_SHORT = { plot: '① 描點', axis: '② 對稱軸', a: '③ 拉 a', flip: '④ 上下翻', k: '⑤ 拉 k', free: '自由探索' };
-const QUIZ_SHORT = { quiz1: '第 1 關', quiz2: '第 2 關', quiz3: '第 3 關', quiz4: '第 4 關', quiz5: '第 5 關' };
+const QUIZ_SHORT = { quiz1: '第 1 關', quiz2: '第 2 關', quiz3: '第 3 關', quiz4: '第 4 關', quiz5: '第 5 關', quiz6: '第 6 關' };
 
 export function mountAdmin(view) {
   if (session.offline) {

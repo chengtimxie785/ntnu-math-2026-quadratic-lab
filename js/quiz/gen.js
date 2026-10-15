@@ -1,4 +1,4 @@
-// 測驗題目產生器：五個關卡，每關 5 題
+// 測驗題目產生器：第 1～5 關每關 5 題；第 6 關綜合挑戰，第 1～5 關依序各抽 2 題，共 10 題
 // 題目全部由程式隨機產生，正確答案由程式計算；每個錯誤選項都標上對應的迷思代碼（見 mis.js）
 //
 // 題目物件：
@@ -307,8 +307,23 @@ function level5() {
 
 const LEVEL_GEN = { 1: level1, 2: level2, 3: level3, 4: level4, 5: level5 };
 
-// 產生一關 5 題；seen 是這位學生看過的題目代碼，盡量避開
+// 第 6 關：第 1～5 關依序各抽 2 題；同一關的 2 題不同，該關有多種題型時挑不同題型
+// 題目代碼加上「6|」，和第 1～5 關的統計分開
+function makeMixed(seen) {
+  const inner = new Set([...seen].map((s) => s.replace(/^6\|/, '')));
+  const out = [];
+  for (let lv = 1; lv <= 5; lv++) {
+    const pool = makeLevel(lv, inner);
+    const first = pool[0];
+    const second = pool.find((q) => q.sig !== first.sig && q.type !== first.type) || pool.find((q) => q.sig !== first.sig);
+    for (const q of [first, second]) out.push({ ...q, level: 6, src: lv, sig: `6|${q.sig}` });
+  }
+  return out;
+}
+
+// 產生一關的題目（第 1～5 關 5 題、第 6 關 10 題）；seen 是這位學生看過的題目代碼，盡量避開
 export function makeLevel(level, seen = new Set()) {
+  if (level === 6) return makeMixed(seen);
   const makers = LEVEL_GEN[level]();
   const out = [], used = new Set();
   for (const make of makers) {
