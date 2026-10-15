@@ -2,7 +2,8 @@
 //
 // 計分：每題答對 20 分（第 1～5 關 5 題全對 100；第 6 關 10 題全對 200）；
 //       速度加分（答對才有，每題各自計時）：1～2 秒 +10、3～4 秒 +9、5～6 秒 +8……19～20 秒 +1，超過 20 秒 0；第 1～5 關最高 150、第 6 關最高 300
-// 每一題的作答（含完整題目）都寫進後端 events，老師端可以看錯題與迷思統計
+// 每一題的作答（含完整題目、第幾題 slot）都寫進後端 events，老師端可以看錯題與迷思統計；
+// 後端依 slot 逐題覆蓋（重玩時只換掉做過的那幾題），每題分數由後端計算，排行榜加總每一題最新的分數
 
 import { makeLevel } from './gen.js';
 import { LEVELS } from './mis.js';
@@ -30,6 +31,18 @@ export function speedBonus(ms) {
   return Math.max(0, MAX_SPEED - Math.floor((sec - 1) / 2));
 }
 
+// 送出一題的作答紀錄：失敗時隔 1、2、4 秒重試，全部失敗才回傳 false
+const RETRY_MS = [1000, 2000, 4000];
+async function sendAnswer(args) {
+  for (let t = 0; ; t++) {
+    try { await rpc('log_event', args); return true; }
+    catch (_) {
+      if (t >= RETRY_MS.length) return false;
+      await new Promise((r) => setTimeout(r, RETRY_MS[t]));
+    }
+  }
+}
+
 export function points(ok, ms) {
   if (!ok) return { base: 0, speed: 0, total: 0 };
   const speed = speedBonus(ms);
@@ -40,7 +53,7 @@ export function points(ok, ms) {
 export async function renderQuizHub(view) {
   const avail = LEVELS.filter((l) => isUnlocked(`quiz${l.id}`));
   view.innerHTML = `
-    <div class="task"><h2>測驗區</h2><p>第 1～5 關每關 5 題，第 6 關是綜合挑戰，共 10 題。每題答對 20 分，答對時還有速度加分：2 秒內 +10，之後每 2 秒少 1 分，超過 20 秒就不加分。第 1～5 關最高 150 分，第 6 關最高 300 分。可以重玩，成績以最新一次為準。</p></div>
+    <div class="task"><h2>測驗區</h2><p>第 1～5 關每關 5 題，第 6 關是綜合挑戰，共 10 題。每題答對 20 分，答對時還有速度加分：2 秒內 +10，之後每 2 秒少 1 分，超過 20 秒就不加分。第 1～5 關最高 150 分，第 6 關最高 300 分。可以重玩，每一題都以最新一次作答為準。</p></div>
     <div class="quiz-levels" id="qz-levels">
       ${LEVELS.map((l) => {
         const open = isUnlocked(`quiz${l.id}`);
@@ -89,8 +102,8 @@ export function playLevel(view, level) {
   const seen = loadSeen(level);
   const qs = makeLevel(level, seen);
   const st = { i: 0, score: 0, correct: 0, ms: 0, t0: 0, answered: false };
-  // 本次作答編號：後端收到新的編號時，會刪掉這個人這一關之前的作答紀錄（重作就覆蓋）
-  const att = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  // 送出中的作答紀錄（slot → Promise<是否成功>）與送出時的參數（重新送出用）
+  const sending = new Map(), sent = new Map();
 
   view.innerHTML = `
     <div class="quiz">
@@ -175,17 +188,19 @@ export function playLevel(view, level) {
     $('#qz-next').textContent = st.i + 1 < qs.length ? '下一題' : '看結果';
     $('#qz-next').hidden = false;
     seen.add(q.sig);
-    // 作答紀錄（含完整題目，老師端看錯題用）；送不出去也不影響作答
+    // 作答紀錄（含完整題目，老師端看錯題用）；在背景送出並自動重試，不影響作答
     if (!session.offline) {
-      rpc('log_event', {
+      const args = {
         tok: session.token, pg: `quiz${level}`, k: 'answer', ok,
         p: {
-          sig: q.sig, att, level, src: q.src ?? level, type: q.type, prompt: q.promptText, promptHtml: q.prompt, graph: q.graph,
+          sig: q.sig, slot: st.i, level, src: q.src ?? level, type: q.type, prompt: q.promptText, promptHtml: q.prompt, graph: q.graph,
           choices: q.choices.map((c) => ({ text: c.text, html: c.html, mis: c.mis })),
           answer: q.answer, picked, pickedText: q.choices[picked].text,
           mis: ok ? null : (q.choices[picked].mis || 'other'), explain: q.explain, ms,
         },
-      }).catch(() => {});
+      };
+      sent.set(st.i, args);
+      sending.set(st.i, sendAnswer(args));
     }
   });
 
@@ -214,11 +229,33 @@ export function playLevel(view, level) {
     view.querySelector('#qz-again').addEventListener('click', (e) => { e.preventDefault(); playLevel(view, level); });
     if (session.offline) { view.querySelector('#qz-board').textContent = '離線模式無法顯示排行榜。'; return; }
     const bestEl = view.querySelector('#qz-best'), boardEl = view.querySelector('#qz-board');
-    try {
-      const best = await rpc('submit_quiz', { tok: session.token, lv: level, sc: st.score, cor: st.correct, dur: st.ms });
-      bestEl.textContent = session.token ? `已記錄這一關的成績 ${best} 分（重玩會以最新一次為準）。` : '（管理員示範：成績不列入排行榜）';
-    } catch (e) { bestEl.textContent = `成績送出失敗：${e.message}`; }
-    if (boardEl.isConnected) renderBoard(boardEl);
+    bestEl.textContent = '正在送出作答紀錄…';
+    // 等所有作答紀錄送完；有送不出去的題目就顯示「重新送出」
+    const settle = async () => {
+      const slots = [...sending.keys()];
+      const ok = await Promise.all(slots.map((i) => sending.get(i)));
+      const failed = slots.filter((_, j) => !ok[j]);
+      if (!bestEl.isConnected) return;
+      if (failed.length) {
+        bestEl.innerHTML = `有 ${failed.length} 題的作答沒有送出（網路不穩）。分數先以畫面為準，請按下面的按鈕再送一次。
+          <br><button type="button" class="btn small primary" id="qz-resend">重新送出</button>`;
+        bestEl.className = 'msg bad';
+        bestEl.querySelector('#qz-resend').addEventListener('click', () => {
+          for (const i of failed) sending.set(i, sendAnswer(sent.get(i)));
+          bestEl.textContent = '正在重新送出…'; bestEl.className = 'hint';
+          settle();
+        });
+        return;
+      }
+      try {
+        const total = await rpc('submit_quiz', { tok: session.token, lv: level, sc: st.score, cor: st.correct, dur: st.ms });
+        if (!bestEl.isConnected) return;
+        bestEl.textContent = session.admin ? '（管理員示範：成績不列入排行榜）'
+          : `已記錄。這一關目前的成績是 ${total} 分（每一題以最新一次作答為準）。`;
+      } catch (e) { if (bestEl.isConnected) bestEl.textContent = `作答已送出，但讀取成績失敗：${e.message}`; }
+      if (boardEl.isConnected) renderBoard(boardEl);
+    };
+    settle();
   }
 
   show();

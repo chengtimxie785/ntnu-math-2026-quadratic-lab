@@ -32,7 +32,7 @@ function store(key, val) {
 
 async function client() {
   if (!sb) {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
     sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true },
     });

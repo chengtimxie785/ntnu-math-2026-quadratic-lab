@@ -307,13 +307,15 @@ function level5() {
 
 const LEVEL_GEN = { 1: level1, 2: level2, 3: level3, 4: level4, 5: level5 };
 
-// 第 6 關：第 1～5 關依序各抽 2 題；同一關的 2 題不同，該關有多種題型時挑不同題型
+// 第 6 關：第 1～5 關依序各抽 2 題；同一關的 2 題不同，該關有多種題型時一定挑不同題型
+// （候選題裡只有一種題型時重新產生，最多 30 次；第 5 關只有一種題型）
 // 題目代碼加上「6|」，和第 1～5 關的統計分開
 function makeMixed(seen) {
   const inner = new Set([...seen].map((s) => s.replace(/^6\|/, '')));
   const out = [];
   for (let lv = 1; lv <= 5; lv++) {
-    const pool = makeLevel(lv, inner);
+    let pool = makeLevel(lv, inner);
+    for (let t = 0; t < 30 && new Set(pool.map((q) => q.type)).size < 2; t++) pool = makeLevel(lv, inner);
     const first = pool[0];
     const second = pool.find((q) => q.sig !== first.sig && q.type !== first.type) || pool.find((q) => q.sig !== first.sig);
     for (const q of [first, second]) out.push({ ...q, level: 6, src: lv, sig: `6|${q.sig}` });
