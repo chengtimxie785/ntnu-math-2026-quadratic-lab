@@ -1,4 +1,4 @@
-// 互動專區①：描點變曲線（學習單第三部分）
+// 互動專區①：描點變曲線（學習單第三部分）；內建 SVG 版，Desmos 載入失敗時使用（Desmos 版在 plot-desmos.js）
 // 對應課本 p.10～12：先描 7 個整數點，再逐步加密，最後連成平滑曲線
 
 import { Plane, svgEl } from './graph.js';
@@ -135,8 +135,9 @@ export function mountPlot(root) {
     draw();
   });
   $('#plot-line').addEventListener('click', () => { st.line = !st.line; if (st.line) st.lineTried = true; draw(); });
+  // 重來：只重設步驟 2（點距回到 1）；步驟 1 的線段保持原樣，步驟 3 要有曲線才能做，所以一起重設
   $('#plot-reset').addEventListener('click', () => {
-    Object.assign(st, { level: 0, curve: false, line: false, prev: new Set(), lineTried: false, foundMin: false });
+    Object.assign(st, { level: 0, curve: false, prev: new Set(), foundMin: false });
     sel = null;
     draw();
   });

@@ -1,6 +1,6 @@
 // 自由探索：完整的對摺工具（任意摺線、任意點、任意 a、k），給老師示範或學有餘力的學生
 
-import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, isPhone } from './desmos-core.js';
+import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader } from './desmos-core.js';
 import { DesmosFold } from './desmos-fold.js';
 import { eqText } from './format.js';
 import { flag, onSettings } from './settings.js';
@@ -11,7 +11,6 @@ export function mountFold(root) {
 }
 
 function build(root) {
-  const phone = isPhone();
   root.innerHTML = `
     ${taskHeader('自由探索', '任意選摺線、選點、改變圖形，自己找找看還有什麼發現。', '')}
     <div class="lab">
@@ -21,7 +20,7 @@ function build(root) {
         <div class="card">
           <h3>要對摺的圖形</h3>
           <div class="eq" id="fd-eq"></div>
-          ${phone ? slidersHTML('fd') : '<p class="hint">用左側 Desmos 的 a、k 拉桿改變圖形。</p>'}
+          ${slidersHTML('fd')}
           <div class="msg" id="fd-msg" aria-live="polite"></div>
           <div class="row" style="margin-top:.6rem">
             <button type="button" class="btn" id="fd-reset">全部重設</button>
@@ -46,7 +45,7 @@ function build(root) {
   lifecycle(root, calc, () => fold.setTop(fitSquare(calc, 11, st.hy)));
 
   const setMsg = (m) => { const el = $('#fd-msg'); el.textContent = m; el.className = 'msg bad'; };
-  const sync = phone ? bindSliders(root, 'fd', calc, setMsg) : () => {};
+  const sync = bindSliders(root, 'fd', calc, setMsg);
   const refresh = () => { renderEq($('#fd-eq'), $('#fd-msg'), st.a, st.k); sync(st.a, st.k); };
   watch(calc, 'a', (v) => { st.a = v; refresh(); });
   watch(calc, 'k', (v) => {

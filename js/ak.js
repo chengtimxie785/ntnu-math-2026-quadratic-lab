@@ -2,7 +2,7 @@
 // 任務⑤ 拉拉看 k（學習單第五部分）
 // mode = 'a'：只拉 a，k 固定為 0；mode = 'k'：a、k 都可以拉（第五部分最後一題要把 a 改成 −2）
 
-import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, isPhone, COLORS, L } from './desmos-core.js';
+import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, COLORS, L } from './desmos-core.js';
 import { eqText, approxEq, numHTML } from './format.js';
 import { stepHTML, setStep, stepStates, checklistHTML, markChecks } from './steps.js';
 import { mountSlider } from './slider.js';
@@ -30,7 +30,6 @@ export function mountAK(root, mode = 'a') {
 }
 
 function build(root, mode) {
-  const phone = isPhone();
   const t = TASKS[mode];
   const onlyA = mode === 'a';
   const tools = `
@@ -48,7 +47,7 @@ function build(root, mode) {
     </div>`;
   const control = `
     <div class="eq" id="ak-eq"></div>
-    ${phone ? slidersHTML('ak', { a: true, k: !onlyA }) : `<p class="hint">用左側 Desmos 的${onlyA ? ' a ' : ' a、k '}拉桿。</p>`}
+    ${slidersHTML('ak', { a: true, k: !onlyA })}
     <div class="msg" id="ak-msg" aria-live="polite"></div>`;
   const steps = onlyA
     ? stepHTML('ak-s1', 1, '拉到學習單表格的 6 個 a 值', `
@@ -79,7 +78,7 @@ function build(root, mode) {
   lifecycle(root, calc, () => fitSquare(calc, 11, st.hy));
   fitSquare(calc);
   const setMsg = (m) => { const el = $('#ak-msg'); el.textContent = m; el.className = 'msg bad'; };
-  const sync = phone ? bindSliders(root, 'ak', calc, setMsg) : () => {};
+  const sync = bindSliders(root, 'ak', calc, setMsg);
 
   // 步驟進度
   function updateSteps() {

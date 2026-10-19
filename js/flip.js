@@ -1,10 +1,10 @@
 // 任務④ 上下翻（學習單第四部分的對摺題、歸納第 4 點）
 // 把 y = ax² 沿 x 軸翻下來，再拉 a 讓實線和虛線重合，找出 y = ax² 與 y = −ax² 的關係
 //
-// 兩步驟引導：步驟 1（翻下來）完成前，步驟 2 變暗、手機版 a 拉桿鎖住；
+// 兩步驟引導：步驟 1（翻下來）完成前，步驟 2 變暗、a 拉桿鎖住；
 // 重合後出現「下一題」，換新圖形時步驟 1 會寫出新題目並提示先翻下來
 
-import { withDesmos, makeCalc, baseExpressions, fitSquare, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, isPhone } from './desmos-core.js';
+import { withDesmos, makeCalc, baseExpressions, fitSquare, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader } from './desmos-core.js';
 import { DesmosFold } from './desmos-fold.js';
 import { eqText, eqHTML, approxEq } from './format.js';
 import { mountSlider } from './slider.js';
@@ -17,7 +17,6 @@ export function mountFlip(root) {
 }
 
 function build(root) {
-  const phone = isPhone();
   root.innerHTML = `
     ${taskHeader('任務④ 上下翻', '把 y = ax² 沿著橫的那條座標軸翻下來，它會和哪一個函數的圖形重合？', '四（對摺題、歸納第 4 點）')}
     <div class="lab">
@@ -31,7 +30,7 @@ function build(root) {
         <div class="card step" id="fp-step2">
           <h3><span class="step-no">2</span>拉 a，讓實線和虛線重合<span class="step-done">✓ 完成</span></h3>
           <div class="eq" id="fp-eq"></div>
-          ${phone ? slidersHTML('fp', { a: true, k: false }) : '<p class="hint">用左側 Desmos 的 a 拉桿。</p>'}
+          ${slidersHTML('fp', { a: true, k: false })}
           <div class="msg" id="fp-msg" aria-live="polite"></div>
           <div class="msg" id="fp-hint2" aria-live="polite"></div>
           <button type="button" class="btn primary wide" id="fp-next" hidden>下一題：換一個圖形</button>
@@ -50,7 +49,7 @@ function build(root) {
 
   const st = { a: 2, start: 2, done: 0, matched: false, counted: false, isNew: false };
   const setMsg = (m) => { const el = $('#fp-msg'); el.textContent = m; el.className = 'msg bad'; };
-  const sync = phone ? bindSliders(root, 'fp', calc, setMsg) : () => {};
+  const sync = bindSliders(root, 'fp', calc, setMsg);
 
   const fold = new DesmosFold(calc, {
     panel: $('#fp-step1'),
@@ -96,7 +95,7 @@ function build(root) {
 
     $('#fp-next').hidden = !matched;
     $('#fp-count').textContent = st.done ? `已完成 ${st.done} 題` : '';
-    // 手機版：步驟 1 完成前先鎖住 a 拉桿，避免學生在沒有虛線時亂拉
+    // 步驟 1 完成前先鎖住 a 拉桿，避免學生在沒有虛線時亂拉
     for (const id of ['#fp-a', '#fp-a-in']) { const el = $(id); if (el) el.disabled = !folded; }
   }
 

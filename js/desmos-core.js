@@ -1,4 +1,4 @@
-// Desmos 共用工具：載入、建立計算機、等比例視窗、手機版自製拉桿
+// Desmos 共用工具：載入、建立計算機、等比例視窗、自製拉桿
 
 import { DESMOS_API_KEY, DESMOS_VERSION } from './config.js';
 import { eqHTML, fmt, parseNum, approxEq } from './format.js';
@@ -46,11 +46,12 @@ export async function withDesmos(root, build, fallback) {
   if (root.isConnected) build(root);
 }
 
-// 手機版只顯示圖形（拉桿自製）；電腦版顯示 Desmos 原生的運算式列表
-export function makeCalc(el) {
+// 手機版、電腦版都只顯示圖形；拉桿一律用網站自製的（放在右側面板），圖形可以用到整個寬度
+// extra：額外的計算機選項（例如任務①關掉自動標出的特殊點）
+export function makeCalc(el, extra = {}) {
   const phone = isPhone();
   return window.Desmos.GraphingCalculator(el, {
-    expressions: !phone,
+    expressions: false,
     keypad: false,
     settingsMenu: false,
     expressionsTopbar: false,
@@ -60,6 +61,7 @@ export function makeCalc(el) {
     language: 'zh-TW',
     invertedColors: false,   // 深色模式也維持淺色畫布，避免反色後「橘色＝對摺」的顏色意義跑掉
     projectorMode: !phone,   // 電腦版多半在大螢幕上用，線條與字放大
+    ...extra,
   });
 }
 
@@ -83,6 +85,15 @@ export function fitSquare(calc, wx = 11, hy = 17) {
   const hw = pc.width * s / 2, hh = pc.height * s / 2;
   calc.setMathBounds({ left: -hw, right: hw, bottom: -hh, top: hh });
   return hh;
+}
+
+// 讓 x、y 單位長相同，且看得到指定的矩形範圍（以矩形中心為畫面中心）
+export function fitBox(calc, xmin, xmax, ymin, ymax) {
+  const pc = calc.graphpaperBounds.pixelCoordinates;
+  if (!pc.width || !pc.height) return;
+  const s = Math.max((xmax - xmin) / pc.width, (ymax - ymin) / pc.height);
+  const cx = (xmin + xmax) / 2, cy = (ymin + ymax) / 2, hw = pc.width * s / 2, hh = pc.height * s / 2;
+  calc.setMathBounds({ left: cx - hw, right: cx + hw, bottom: cy - hh, top: cy + hh });
 }
 
 // k 很大時圖形會跑出畫面：依 k 決定至少要看到的 y 範圍（上下各留 3 單位）
@@ -132,7 +143,7 @@ export function taskHeader(title, goal, ref) {
   return `<div class="task"><h2>${title}</h2><p>${goal}</p>${ref ? `<span class="task-ref">對應學習單 ${ref}</span>` : ''}</div>`;
 }
 
-// ---------- 手機版自製拉桿 ----------
+// ---------- 自製拉桿（手機版、電腦版共用） ----------
 // a 的拉桿跳過 0（a = 0 不是二次函數）；輸入框可打分數
 const A_VALUES = [];
 for (let v = -5; v <= 5; v += 0.5) if (v !== 0) A_VALUES.push(v);

@@ -6,6 +6,7 @@
 //   orients      可用的摺線方向：['v']、['h'] 或 ['v','h']
 //   lockC        摺線固定位置（例如任務四固定在 x 軸 y = 0）；null 表示可拖曳、可輸入
 //   presets      預設可選的點，例如 [{ x: 2, label: '(2, 4)' }]；null 表示用輸入框選點；false 表示不提供選點
+//   pointFold    true 時（任務②）選點後先只顯示這個點，按選點區的「對摺」播放動畫後才出現對稱點
 //   goLabel      對摺按鈕文字
 //   onResult(r)  對摺動畫結束時呼叫，r = {orient, c, same}；可回傳 {text, cls} 取代預設訊息
 //   onMatch()    水平對摺後，目前圖形和虛線重合時呼叫；可回傳 {text, cls} 當作重合訊息
@@ -20,18 +21,20 @@ export class DesmosFold {
   constructor(calc, opts) {
     this.calc = calc;
     this.D = window.Desmos;
-    this.o = { orients: ['v', 'h'], lockC: null, presets: null, goLabel: '對摺！', onResult: null, onMatch: null, ghostEq: () => false, ...opts };
+    this.o = { orients: ['v', 'h'], lockC: null, presets: null, pointFold: false, goLabel: '對摺！', onResult: null, onMatch: null, ghostEq: () => false, ...opts };
     this.o.pointsPanel = this.o.pointsPanel || this.o.panel;
     this.st = {
       a: 1, k: 0,
       orient: this.o.orients.length === 1 ? this.o.orients[0] : null,
       c: this.o.lockC ?? 0, sel: false, p: 2, top: 8,
       ghost: null, foldMsg: { text: '', cls: '' }, animating: false, matched: false,
+      pf: false,   // pointFold 模式：選到的點已經對摺過（顯示對稱點）
     };
     calc.setExpressions([
       // c：摺線位置，p：選取點的 x，q、w、v：選取點與對稱點坐標，g：動畫參數
-      { id: 'c', latex: `c=${L(this.st.c)}`, secret: true, sliderBounds: { min: '-30', max: '30', step: '0.5' } },
-      { id: 'p', latex: 'p=2', secret: true, sliderBounds: { min: '-30', max: '30', step: '0.5' } },
+      // 拖曳範圍設成 ±10000，實際使用上等於沒有限制
+      { id: 'c', latex: `c=${L(this.st.c)}`, secret: true, sliderBounds: { min: '-10000', max: '10000', step: '0.5' } },
+      { id: 'p', latex: 'p=2', secret: true, sliderBounds: { min: '-10000', max: '10000', step: '0.5' } },
       { id: 'q', latex: 'q=ap^{2}+k', secret: true },
       { id: 'w', latex: 'w=2c-p', secret: true },
       { id: 'v', latex: 'v=2c-q', secret: true },
@@ -57,7 +60,12 @@ export class DesmosFold {
         </label>
       </div>
       <p class="hint fold-chint">拖曳圖上的橘色圓點來移動摺線，或直接在上面輸入數字。</p>` : '';
-    o.panel.insertAdjacentHTML('beforeend', `
+    // 放在步驟卡片的提示（.step-hint）之前，提示出現時按鈕才不會被往下推
+    const put = (el, html) => {
+      const hint = el.querySelector(':scope > .step-hint');
+      if (hint) hint.insertAdjacentHTML('beforebegin', html); else el.insertAdjacentHTML('beforeend', html);
+    };
+    put(o.panel, `
       ${orientBtns}${cCtrl}
       <div class="row" style="margin-top:.6rem">
         <button type="button" class="btn primary fold-go">${o.goLabel}</button>
@@ -77,7 +85,8 @@ export class DesmosFold {
            <button type="button" class="btn fold-pick">選這個點</button>
          </div>
          <p class="hint">選好點之後，可以直接拖曳圖上的 P 點，它會沿著圖形移動。</p>`;
-    if (o.presets !== false) o.pointsPanel.insertAdjacentHTML('beforeend', `${pointsUI}<div class="msg fold-selmsg" aria-live="polite"></div>`);
+    const pfBtn = o.pointFold ? '<div class="row" style="margin-top:.5rem"><button type="button" class="btn primary fold-pgo">對摺</button></div>' : '';
+    if (o.presets !== false) put(o.pointsPanel, `${pointsUI}${pfBtn}<div class="msg fold-selmsg" aria-live="polite"></div>`);
 
     const q = (s) => o.panel.querySelector(s) || o.pointsPanel.querySelector(s);
     this.q = q;
@@ -88,7 +97,7 @@ export class DesmosFold {
       cIn.addEventListener('change', () => {
         const v = parseNum(cIn.value);
         if (!Number.isFinite(v)) { cIn.value = fmt(this.st.c); return; }
-        this.calc.setExpression({ id: 'c', latex: `c=${L(Math.max(-25, Math.min(25, Math.round(v * 2) / 2)))}` });
+        this.calc.setExpression({ id: 'c', latex: `c=${L(Math.round(v * 2) / 2)}` });
       });
     }
     if (o.presets !== false) {
@@ -105,6 +114,7 @@ export class DesmosFold {
       q('.fold-px').addEventListener('keydown', (e) => { if (e.key === 'Enter') pick(); });
     }
     q('.fold-go').addEventListener('click', () => this.fold());
+    q('.fold-pgo')?.addEventListener('click', () => this.fold(true));
     q('.fold-clear').addEventListener('click', () => this.clear());
   }
 
@@ -112,20 +122,20 @@ export class DesmosFold {
     const st = this.st;
     st.orient = o;
     st.c = this.o.lockC ?? 0;
-    st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false;
+    st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false; st.pf = false;
     this.calc.setExpression({ id: 'c', latex: `c=${L(st.c)}` });
     this.drawGhost(); this.lastHit = null; this.draw(); this.refresh();
   }
 
   selectX(x) {
-    this.st.sel = true; this.st.p = x;
+    this.st.sel = true; this.st.p = x; this.st.pf = false;
     this.calc.setExpression({ id: 'p', latex: `p=${L(x)}` });
     this.lastHit = null; this.draw(); this.refresh();
   }
 
   clear() {
     const st = this.st;
-    st.sel = false; st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false;
+    st.sel = false; st.pf = false; st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false;
     this.drawGhost(); this.draw(); this.refresh();
     this.o.onClear?.();
   }
@@ -151,6 +161,8 @@ export class DesmosFold {
     return null;
   }
   mirrorHit() { const M = this.mirrorPoint(); return !!M && approxEq(this.f(M.x), M.y, 1e-6); }
+  // 是否顯示對稱點（pointFold 模式要先按「對摺」）
+  showMirror() { return this.st.sel && !!this.st.orient && (!this.o.pointFold || this.st.pf); }
 
   ghostFn(g) {
     return g.orient === 'v' ? (x) => g.a * (2 * g.c - x) ** 2 + g.k : (x) => 2 * g.c - (g.a * x * x + g.k);
@@ -184,7 +196,7 @@ export class DesmosFold {
         dragMode: this.o.presets ? D.DragModes.NONE : D.DragModes.X, showLabel: true, label: '(${p}, ${q})',
       });
     } else calc.removeExpression({ id: 'P' });
-    if (st.sel && st.orient) {
+    if (this.showMirror()) {
       const hit = this.mirrorHit();
       const v = st.orient === 'v';
       calc.setExpressions([
@@ -234,13 +246,17 @@ export class DesmosFold {
         : '先選「垂直摺線」或「水平摺線」。';
     }
     q('.fold-go').disabled = !st.orient || st.animating;
+    const pgo = q('.fold-pgo');
+    if (pgo) pgo.disabled = !st.sel || !st.orient || st.animating;
 
     // 選點訊息：說明對摺後跑到哪裡，以及這代表什麼
     if (st.sel) {
       const P = { x: st.p, y: this.f(st.p) };
       const M = this.mirrorPoint();
       let t = `選到的點：${fmtPoint(P)}`, cls = '';
-      if (M) {
+      if (M && !this.showMirror()) {
+        t = `選到的點：${fmtPoint(P)}。按「對摺」，看看它會跑到哪裡。`;
+      } else if (M) {
         if (approxEq(M.x, P.x) && approxEq(M.y, P.y)) {
           t = `${fmtPoint(P)} 剛好在摺線上，對摺後不會移動。`;
         } else if (this.mirrorHit()) {
@@ -280,26 +296,43 @@ export class DesmosFold {
         st.ghost = null; st.foldMsg = { text: '', cls: '' }; this.drawGhost();
       }
     }
+    // pointFold 模式：摺線移動或圖形改變後，對稱點要重新摺一次
+    if (changed && !st.animating && st.pf && key !== 'p') { st.pf = false; this.lastHit = null; this.draw(); }
     st[key] = val;
-    const hit = st.sel && st.orient ? this.mirrorHit() : null;
+    const hit = this.showMirror() ? this.mirrorHit() : null;
     if (hit !== this.lastHit) { this.lastHit = hit; this.draw(); }   // 對稱點實心／空心切換
     this.refresh();
   }
 
   // ---------- 對摺動畫：參數 g 從 0 到 1，把圖形「翻」到摺線另一側 ----------
-  fold() {
+  // withPoint：pointFold 模式的「對摺」，選到的點跟著圖形一起翻過去，結束後才顯示對稱點（不改變步驟 1 的結果）
+  fold(withPoint = false) {
     const { calc, st } = this;
-    if (!st.orient || st.animating) return;
+    if (!st.orient || st.animating || (withPoint && !st.sel)) return;
     const g0 = { orient: st.orient, c: st.c, a: st.a, k: st.k };
-    st.animating = true; st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false;
-    this.drawGhost(); this.refresh();
+    st.animating = true;
+    if (withPoint) { st.pf = false; this.lastHit = null; this.draw(); }
+    else { st.ghost = null; st.foldMsg = { text: '', cls: '' }; st.matched = false; this.drawGhost(); }
+    this.refresh();
     const moving = g0.orient === 'v'
       ? `\\left(${L(g0.c)}+\\left(t-${L(g0.c)}\\right)\\left(1-2g\\right),${L(g0.a)}t^{2}+${L(g0.k)}\\right)`
       : `\\left(t,${L(g0.c)}+\\left(${L(g0.a)}t^{2}+${L(g0.k)}-${L(g0.c)}\\right)\\left(1-2g\\right)\\right)`;
-    calc.setExpressions([
+    // 參數範圍：涵蓋目前畫面，以及摺過去之後會落在畫面上的部分（摺線拉很遠時也看得到動畫）
+    const b = calc.graphpaperBounds.mathCoordinates;
+    const lo = g0.orient === 'v' ? Math.min(b.left, 2 * g0.c - b.right) : b.left;
+    const hi = g0.orient === 'v' ? Math.max(b.right, 2 * g0.c - b.left) : b.right;
+    const exprs = [
       { id: 'g', latex: 'g=0' },
-      { id: 'mv', latex: moving, color: COLORS.mirror, lineWidth: 3.5, parametricDomain: { min: '-40', max: '40' }, secret: true },
-    ]);
+      { id: 'mv', latex: moving, color: COLORS.mirror, lineWidth: 3.5, parametricDomain: { min: String(Math.floor(lo - 2)), max: String(Math.ceil(hi + 2)) }, secret: true },
+    ];
+    if (withPoint) {
+      exprs.push({
+        id: 'mvp', color: COLORS.mirror, pointSize: 16, secret: true, dragMode: this.D.DragModes.NONE,
+        latex: g0.orient === 'v' ? `\\left(${L(g0.c)}+\\left(p-${L(g0.c)}\\right)\\left(1-2g\\right),q\\right)`
+          : `\\left(p,${L(g0.c)}+\\left(q-${L(g0.c)}\\right)\\left(1-2g\\right)\\right)`,
+      });
+    }
+    calc.setExpressions(exprs);
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const dur = reduce ? 1 : 1100;
     const t0 = performance.now();
@@ -310,7 +343,12 @@ export class DesmosFold {
       calc.setExpression({ id: 'g', latex: `g=${t.toFixed(4)}` });
       if (raw < 1) { requestAnimationFrame(step); return; }
       calc.removeExpression({ id: 'mv' });
+      calc.removeExpression({ id: 'mvp' });
       st.animating = false;
+      if (withPoint) {
+        st.pf = true; this.lastHit = null; this.draw(); this.refresh();
+        return;
+      }
       st.ghost = g0;
       this.drawGhost();
       const same = this.ghostSame();

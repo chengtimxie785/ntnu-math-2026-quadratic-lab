@@ -3,7 +3,7 @@
 
 import { session, rpc, loginGoogle } from './backend.js';
 import { MIS, LEVELS } from './quiz/mis.js';
-import { drawGraph } from './quiz/quiz.js';
+import { drawGraph, renderBoards } from './quiz/quiz.js';
 import { ONLINE_SEC, countByPage } from './presence.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -113,13 +113,10 @@ export function mountBoard(view) {
     else renderWrongList();
   }
 
+  // 排行榜：總排行＋每關各一個（和學生端同一個元件，自動更新時保留目前的分頁）
+  let rankSel = 0;
   function renderRank() {
-    const rows = data.leaderboard || [];
-    body.innerHTML = rows.length
-      ? `<ol class="board big">${rows.slice(0, 10).map((r) => `
-          <li><span class="rk">${r.rank}</span><span class="nm">${esc(r.nickname)}</span>
-          <span class="hint">${r.levels} 關</span><span class="sc mono">${r.total}</span></li>`).join('')}</ol>`
-      : '<div class="placeholder">還沒有人完成關卡。</div>';
+    renderBoards(body, { sel: rankSel, big: true, onSel: (v) => { rankSel = v; }, alive: () => tab === 'rank' });
   }
 
   // ---------- 共用：百分比長條（百分比為主，人數為輔） ----------

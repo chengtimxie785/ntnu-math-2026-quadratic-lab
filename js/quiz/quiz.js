@@ -1,4 +1,4 @@
-// 測驗區：關卡列表、作答、結算、排行榜
+// 測驗區：關卡列表、作答、結算、排行榜（總排行＋每關各一個）
 //
 // 計分：每題答對 20 分（第 1～5 關 5 題全對 100；第 6 關 10 題全對 200）；
 //       速度加分（答對才有，每題各自計時）：1～2 秒 +10、3～4 秒 +9、5～6 秒 +8……19～20 秒 +1，超過 20 秒 0；第 1～5 關最高 150、第 6 關最高 300
@@ -79,20 +79,38 @@ export async function renderQuizHub(view) {
       if (el) el.textContent = `成績 ${sc}`;
     }
   } catch (_) { /* 顯示不出成績不影響作答 */ }
-  renderBoard(boardEl);
+  renderBoards(boardEl);
 }
 
-async function renderBoard(el) {
-  try {
-    const b = await rpc('quiz_leaderboard', { tok: session.token });
-    if (!el.isConnected) return;
-    if (!b.top.length) { el.textContent = '還沒有人完成關卡。'; return; }
-    el.className = '';
-    el.innerHTML = `<ol class="board">${b.top.map((r) => `
-      <li class="${r.me ? 'me' : ''}"><span class="rk">${r.rank}</span><span class="nm">${esc(r.nickname)}</span>
-      <span class="hint">${r.levels} 關</span><span class="sc mono">${r.total}</span></li>`).join('')}</ol>
-      ${b.me ? `<p class="hint">你目前第 ${b.me.rank} 名，總分 ${b.me.total}。</p>` : ''}`;
-  } catch (e) { if (el.isConnected) el.textContent = e.message; }
+// 排行榜：上方分頁切換「總排行／第 1～6 關」；sel = 0 是總排行
+//   big：大螢幕看板用（字放大、不標示「我」）；onSel(sel)：切換分頁時通知呼叫端（看板自動更新時保留分頁）
+//   alive()：回傳 false 時不畫（看板在等待期間切到別的分頁）
+export async function renderBoards(el, { sel = 0, big = false, onSel, alive = () => true } = {}) {
+  let b;
+  try { b = await rpc('quiz_boards', { tok: session.token }); }
+  catch (e) {
+    if (el.isConnected && alive()) el.textContent = /quiz_boards/.test(e.message) ? '排行榜尚未更新（需要執行 update_level_boards.sql）。' : e.message;
+    return;
+  }
+  if (!el.isConnected || !alive()) return;   // 等待期間已切換到別的畫面
+  el.className = '';
+  const draw = () => {
+    const rows = (sel ? b.levels?.[sel] : b.all) || [];
+    const mine = big ? null : sel ? b.mine?.[sel] : b.me;
+    el.innerHTML = `
+      <div class="board-tabs${big ? ' big' : ''}" role="group" aria-label="選擇排行榜">${[0, ...LEVELS.map((l) => l.id)].map((id) => `
+        <button type="button" class="btn small" data-bt="${id}" aria-pressed="${id === sel}">${id ? `第 ${id} 關` : '總排行'}</button>`).join('')}
+      </div>
+      ${rows.length ? `<ol class="board${big ? ' big' : ''}">${rows.map((r) => `
+        <li class="${r.me && !big ? 'me' : ''}"><span class="rk">${+r.rank}</span><span class="nm">${esc(r.nickname)}</span>
+        <span class="hint">${sel ? '' : `${+r.levels} 關`}</span><span class="sc mono">${+r.total}</span></li>`).join('')}</ol>`
+        : `<p class="hint">${sel ? '這一關還沒有人作答。' : '還沒有人完成關卡。'}</p>`}
+      ${mine ? `<p class="hint">你${sel ? '在這一關' : '目前'}第 ${+mine.rank} 名，${sel ? '成績' : '總分'} ${+mine.total}。</p>` : ''}`;
+    el.querySelectorAll('[data-bt]').forEach((btn) => btn.addEventListener('click', () => {
+      sel = +btn.dataset.bt; onSel?.(sel); draw();
+    }));
+  };
+  draw();
 }
 
 // ---------- 作答 ----------
@@ -253,7 +271,7 @@ export function playLevel(view, level) {
         bestEl.textContent = session.admin ? '（管理員示範：成績不列入排行榜）'
           : `已記錄。這一關目前的成績是 ${total} 分（每一題以最新一次作答為準）。`;
       } catch (e) { if (bestEl.isConnected) bestEl.textContent = `作答已送出，但讀取成績失敗：${e.message}`; }
-      if (boardEl.isConnected) renderBoard(boardEl);
+      if (boardEl.isConnected) renderBoards(boardEl, { sel: level });
     };
     settle();
   }

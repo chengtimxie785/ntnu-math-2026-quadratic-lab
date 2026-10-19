@@ -1,6 +1,6 @@
 // 路由與全域設定（登入檢查、深淺色、版面）
 
-import { mountPlot } from './plot.js';
+import { mountPlotDesmos } from './plot-desmos.js';
 import { mountAK } from './ak.js';
 import { mountAxis } from './axis.js';
 import { mountFlip } from './flip.js';
@@ -47,7 +47,7 @@ layoutBtn.addEventListener('click', () => {
 });
 
 const LAB_TABS = [
-  { id: 'plot', name: '① 描點畫圖', mount: mountPlot },
+  { id: 'plot', name: '① 描點畫圖', mount: mountPlotDesmos },
   { id: 'axis', name: '② 找對稱軸', mount: mountAxis },
   { id: 'a', name: '③ 拉拉看 a', mount: (r) => mountAK(r, 'a') },
   { id: 'flip', name: '④ 上下翻', mount: mountFlip },
