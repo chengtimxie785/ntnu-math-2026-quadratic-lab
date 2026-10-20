@@ -3,7 +3,7 @@
 // mode = 'a'：只拉 a，k 固定為 0；mode = 'k'：a、k 都可以拉（第五部分最後一題要把 a 改成 −2）
 
 import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, COLORS, L } from './desmos-core.js';
-import { eqText, approxEq, numHTML } from './format.js';
+import { eqText, eqHTML, approxEq, numHTML } from './format.js';
 import { stepHTML, setStep, stepStates, checklistHTML, markChecks } from './steps.js';
 import { mountSlider } from './slider.js';
 
@@ -55,7 +55,7 @@ function build(root, mode) {
         ${checklistHTML(A_TABLE.map((v) => ({ key: String(v), label: `a = ${numHTML(v)}` })))}
         ${control}`)
       + stepHTML('ak-s2', 2, '比較開口大小', `
-        <p class="hint" style="margin:0">把 y = 2x²、y = x²、y = ½x² 三條都「保留」下來（或三條開口向下的），比較誰的開口比較大。</p>
+        <p class="hint" style="margin:0">把 y = 2x²、y = x²、y = ${numHTML(0.5)}x² 三條都「保留」下來（或三條開口向下的），比較誰的開口比較大。</p>
         ${tools}`)
     : stepHTML('ak-s1', 1, 'a = 1 時，拉到 k = 1、3、−2', `
         <p class="hint" style="margin:0 0 .3rem">觀察最低點跑到哪裡、和 y = x² 比往哪裡移動了幾單位，填進學習單的表格。</p>
@@ -123,7 +123,7 @@ function build(root, mode) {
       const li = document.createElement('li');
       li.className = 'pin-row';
       li.innerHTML = `<span class="pin-swatch" style="background:${PIN_CSS[i % 4]}"></span>
-        <span class="mono pin-eq">${eqText(p.a, p.k)}</span>
+        <span class="mono pin-eq">${eqHTML(p.a, p.k)}</span>
         <button type="button" class="btn small">移除</button>`;
       li.querySelector('button').setAttribute('aria-label', `移除 ${eqText(p.a, p.k)}`);
       li.querySelector('button').addEventListener('click', () => {

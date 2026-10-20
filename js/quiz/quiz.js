@@ -10,7 +10,7 @@ import { LEVELS } from './mis.js';
 import { session, rpc } from '../backend.js';
 import { isUnlocked } from '../settings.js';
 import { Plane, svgEl } from '../graph.js';
-import { fmt } from '../format.js';
+import { fmt, fracText } from '../format.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -201,8 +201,8 @@ export function playLevel(view, level) {
     const fb = $('#qz-fb');
     fb.className = `msg ${ok ? 'ok' : 'bad'}`;
     fb.innerHTML = ok
-      ? `<strong>答對了！+${p.total}</strong>　<span class="hint">（答對 ${p.base}${p.speed ? `、速度 +${p.speed}` : ''}）</span><br>${esc(q.explain)}`
-      : `<strong>答錯了</strong><br>${esc(q.explain)}`;
+      ? `<strong>答對了！+${p.total}</strong>　<span class="hint">（答對 ${p.base}${p.speed ? `、速度 +${p.speed}` : ''}）</span><br>${fracText(esc(q.explain))}`
+      : `<strong>答錯了</strong><br>${fracText(esc(q.explain))}`;
     $('#qz-next').textContent = st.i + 1 < qs.length ? '下一題' : '看結果';
     $('#qz-next').hidden = false;
     seen.add(q.sig);

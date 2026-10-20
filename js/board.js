@@ -5,6 +5,7 @@ import { session, rpc, loginGoogle } from './backend.js';
 import { MIS, LEVELS } from './quiz/mis.js';
 import { drawGraph, renderBoards } from './quiz/quiz.js';
 import { ONLINE_SEC, countByPage } from './presence.js';
+import { fracText } from './format.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // 作答紀錄是學生端送上來的，題目 HTML 不能直接信任：只保留題目會用到的 sup、br、span（只留 class），其餘一律轉成純文字
@@ -242,7 +243,7 @@ export function mountBoard(view) {
             ${reveal && !right && c.mis ? `<span class="spot-mis">選這個通常是因為：${esc(MIS[c.mis] || c.mis)}</span>` : ''}
           </li>`;
         }).join('')}</ul>
-        ${reveal ? `<div class="msg ok">正解是 ${String.fromCharCode(65 + q.answer)}。${esc(q.explain)}</div>` : ''}
+        ${reveal ? `<div class="msg ok">正解是 ${String.fromCharCode(65 + q.answer)}。${fracText(esc(q.explain))}</div>` : ''}
         <button type="button" class="btn primary" id="bd-reveal">${reveal ? '隱藏正解' : '顯示正解'}</button>
       </div>`;
     const g = safeGraph(q.graph);

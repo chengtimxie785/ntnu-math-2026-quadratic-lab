@@ -15,7 +15,7 @@
 //   ghostEq()    回傳 true 時，水平對摺後在訊息中顯示虛線的函數式（由老師端開關控制）
 
 import { COLORS, L, watch } from './desmos-core.js';
-import { fmt, fmtPoint, parseNum, approxEq, eqText } from './format.js';
+import { fmt, fmtPoint, parseNum, approxEq, eqHTML, escHTML } from './format.js';
 
 export class DesmosFold {
   constructor(calc, opts) {
@@ -275,13 +275,15 @@ export class DesmosFold {
     const matched = !!(st.ghost && st.ghost.orient === 'h' && this.ghostSame());
     if (matched && !st.matched) st.matchMsg = this.o.onMatch?.() || { text: '✓ 實線和虛線完全重合了！', cls: 'ok' };
     st.matched = matched;
-    let { text, cls } = matched ? st.matchMsg : st.foldMsg;
+    // 訊息可以是純文字（text）或 HTML（html，用來排分數）
+    const { text, html, cls } = matched ? st.matchMsg : st.foldMsg;
+    let out = html ?? escHTML(text);
     if (!matched && st.ghost && st.ghost.orient === 'h' && this.o.ghostEq()) {
       const g = st.ghost;
-      text += `（橘色虛線是 ${eqText(-g.a, 2 * g.c - g.k)}）`;
+      out += `（橘色虛線是 ${eqHTML(-g.a, 2 * g.c - g.k)}）`;
     }
     const fm = q('.fold-msg');
-    fm.textContent = text;
+    fm.innerHTML = out;
     fm.className = `msg fold-msg ${cls}`;
     this.o.onChange?.();
   }

@@ -104,7 +104,7 @@ export function mountSlider(root) {
       const c = document.createElement('span');
       c.className = 'chip';
       c.style.color = PIN_COLORS[i % PIN_COLORS.length];
-      c.innerHTML = `${eqText(p.a, p.k)}<button type="button" aria-label="移除 ${eqText(p.a, p.k)}">×</button>`;
+      c.innerHTML = `${eqHTML(p.a, p.k)}<button type="button" aria-label="移除 ${eqText(p.a, p.k)}">×</button>`;
       c.querySelector('button').addEventListener('click', () => { st.pins.splice(i, 1); draw(); });
       chips.appendChild(c);
     });

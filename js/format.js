@@ -58,6 +58,17 @@ export function eqText(a, k) {
   return s;
 }
 
+// HTML 跳脫
+export function escHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// 把（已跳脫的）純文字裡的 (1/2)、1/2 換成上下排的分數
+export function fracText(s) {
+  const f = (_, n, d) => `<span class="frac"><span>${n}</span><span>${d}</span></span>`;
+  return s.replace(/\((\d+)\/(\d+)\)/g, f).replace(/(\d+)\/(\d+)/g, f);
+}
+
 // 解析使用者輸入：支援 -1/2、−0.5、3
 export function parseNum(str) {
   if (str == null) return NaN;

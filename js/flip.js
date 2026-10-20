@@ -6,7 +6,7 @@
 
 import { withDesmos, makeCalc, baseExpressions, fitSquare, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader } from './desmos-core.js';
 import { DesmosFold } from './desmos-fold.js';
-import { eqText, eqHTML, approxEq } from './format.js';
+import { eqHTML, approxEq } from './format.js';
 import { mountSlider } from './slider.js';
 
 // 「下一題」時從這些 a 值挑
@@ -89,7 +89,7 @@ function build(root) {
     const h2 = $('#fp-hint2');
     if (!folded) { h2.textContent = '先完成步驟 1，再來拉 a。'; h2.className = 'msg'; }
     else if (matched) {
-      h2.textContent = `✓ 重合了！${eqText(st.start, 0)} 沿著 x 軸翻下來，和 ${eqText(st.a, 0)} 的圖形完全重合。`;
+      h2.innerHTML = `✓ 重合了！${eqHTML(st.start, 0)} 沿著 x 軸翻下來，和 ${eqHTML(st.a, 0)} 的圖形完全重合。`;
       h2.className = 'msg ok';
     } else { h2.textContent = '拉動 a，讓藍色實線和橘色虛線完全重合。'; h2.className = 'msg mirror'; }
 
