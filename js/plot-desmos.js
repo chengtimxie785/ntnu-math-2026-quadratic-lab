@@ -103,7 +103,7 @@ function build(root) {
       ? '點多到數不完時，就連成一條平滑的曲線，這就是 y = x² 的圖形。'
       : st.level > 0 ? `點距 ${fmt(STEPS[st.level])}：折角越來越不明顯了，再按看看。` : '', st.curve ? 'ok' : '');
     let h3 = '', c3 = '';
-    if (st.foundMin) { h3 = '✓ 找到最低點了！把它的坐標寫進學習單，接著到「任務② 找對稱軸」。'; c3 = 'ok'; }
+    if (st.foundMin) { h3 = '✓ 找到最低點了！把它的坐標寫進學習單，再等老師說明下一步。'; c3 = 'ok'; }
     else if (st.curve && st.moved) { h3 = `(${fmt(st.t)}, ${fmt(Math.round(st.t * st.t * 100) / 100)}) 不是最低點，再往下找找看。`; c3 = 'bad'; }
     setStep($('#pl-s3'), s3, h3, c3);
   }
