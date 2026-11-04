@@ -33,7 +33,7 @@ function build(root) {
       <div class="panel">
         <p class="hint" style="margin:0">y = x<sup>2</sup>，x 從 −3 到 3，點距 <span class="num" id="plot-step">1</span>，目前有 <span class="num" id="plot-count">7</span> 個點。點一下圖上的點可以看坐標。</p>
         ${stepHTML('pl-s1', 1, '用線段把 7 個點連起來', `
-          <p class="hint" style="margin:0 0 .4rem">和對摺坐標紙上描的點一樣。用線段連起來，看看是什麼形狀。</p>
+          <p class="hint" style="margin:0 0 .4rem">和坐標紙上描的點一樣。用線段連起來，看看是什麼形狀。</p>
           <button type="button" class="btn" id="plot-line" aria-pressed="false">用線段連起來</button>`)}
         ${stepHTML('pl-s2', 2, '加更多點，直到變成平滑曲線', `
           <p class="hint" style="margin:0 0 .4rem">每按一次，點距就變小、點變多。連成的線還有折角嗎？</p>
