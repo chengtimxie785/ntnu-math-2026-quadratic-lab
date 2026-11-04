@@ -6,7 +6,7 @@ export const MIS = {
   no_simplify: '沒有化簡就判斷（x² 項會被消掉）',
   const_square: '把常數的平方當成 x² 項',
   a_zero: '忽略 a ≠ 0 的條件',
-  cubic: '有 x³ 項卻判斷成二次函數（沒看最高次數）',
+  cubic: '有 x³ 項卻判斷成二次函數（沒看最高次方）',
   sign_open: 'a 的正負與開口方向搞反',
   max_min: '最高點與最低點搞混',
   vertex_swap: '坐標的 x、y 順序寫反',

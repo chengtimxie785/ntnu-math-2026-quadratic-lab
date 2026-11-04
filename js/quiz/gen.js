@@ -60,7 +60,7 @@ const L1_OK = {
     const a = pick(A_SET), b = ri(-5, 5), c = ri(-6, 6);
     const e = Y(poly([T(a, X2), T(b, X1), T(c, C)]));
     return { type: 'std', sig: `std:${a},${b},${c}`, e, quad: true, mis: 'not_recognize',
-      explain: `最高次數是 2，而且 x² 的係數是 ${numS(a)}（不是 0），所以是二次函數。` };
+      explain: `最高次方是 2，而且 x² 的係數是 ${numS(a)}（不是 0），所以是二次函數。` };
   },
   product() {
     if (Math.random() < 0.5) {
@@ -68,13 +68,13 @@ const L1_OK = {
       const e = { h: `y = x(${xp(-k)})`, t: `y = x(${xp(-k)})` };
       const ex = poly([T(1, X2), T(-k, X1)]).t;
       return { type: 'product', sig: `prodA:${k}`, e, quad: true, mis: 'product_form',
-        explain: `展開後 y = ${ex}，最高次數是 2，所以是二次函數。` };
+        explain: `展開後 y = ${ex}，最高次方是 2，所以是二次函數。` };
     }
     const p = ri(-5, 5, true), q = ri(-5, 5, true);
     const e = { h: `y = (${xp(p)})(${xp(q)})`, t: `y = (${xp(p)})(${xp(q)})` };
     const ex = poly([T(1, X2), T(p + q, X1), T(p * q, C)]).t;
     return { type: 'product', sig: `prodB:${p},${q}`, e, quad: true, mis: 'product_form',
-      explain: `展開後 y = ${ex}，最高次數是 2，所以是二次函數。` };
+      explain: `展開後 y = ${ex}，最高次方是 2，所以是二次函數。` };
   },
   negsq() {
     const h = ri(-4, 4, true), k = ri(-5, 5);
@@ -91,14 +91,14 @@ const L1_TRAP = {
     const e = { h: `y = (${xp(p)})<sup>2</sup> ${M} x<sup>2</sup>`, t: `y = (${xp(p)})² ${M} x²` };
     const ex = poly([T(2 * p, X1), T(p * p, C)]).t;
     return { type: 'cancel', sig: `cancel:${p}`, e, quad: false, mis: 'no_simplify',
-      explain: `展開後 x² 會被消掉：y = ${ex}，最高次數是 1，是一次函數，不是二次函數。` };
+      explain: `展開後 x² 會被消掉：y = ${ex}，最高次方是 1，是一次函數，不是二次函數。` };
   },
   constsq() {
     const m = ri(2, 9), n = ri(-6, 6, true);
     const nx = poly([T(n, X1)]);
     const e = { h: `y = ${m}<sup>2</sup> ${n < 0 ? M : '+'} ${poly([T(Math.abs(n), X1)]).h}`, t: `y = ${m}² ${n < 0 ? M : '+'} ${poly([T(Math.abs(n), X1)]).t}` };
     return { type: 'constsq', sig: `constsq:${m},${n}`, e, quad: false, mis: 'const_square',
-      explain: `${m}² = ${m * m} 只是常數，化簡後 y = ${nx.t} + ${m * m}，最高次數是 1，不是二次函數。` };
+      explain: `${m}² = ${m * m} 只是常數，化簡後 y = ${nx.t} + ${m * m}，最高次方是 1，不是二次函數。` };
   },
   azero() {
     const b = ri(-6, 6, true), c = ri(-6, 6);
@@ -112,7 +112,7 @@ const L1_TRAP = {
     const a = ri(-3, 3, true), b = ri(-4, 4, true), c = ri(-5, 5);
     const e = Y(poly([T(a, X3), T(b, X2), T(c, C)]));
     return { type: 'cubic', sig: `cubic:${a},${b},${c}`, e, quad: false, mis: 'cubic',
-      explain: '最高次數是 3（有 x³ 項），不是二次函數。' };
+      explain: '最高次方是 3（有 x³ 項），不是二次函數。' };
   },
 };
 

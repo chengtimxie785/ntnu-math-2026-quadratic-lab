@@ -1,4 +1,4 @@
-// 任務② 找對稱軸（學習單第三部分 3-(3)(4)）
+// 任務② 找對稱軸（學習單第二大題 4）
 // 步驟 1：拖曳垂直摺線、按對摺，找出讓 y = x² 左右完全重合的直線
 // 步驟 2：先點一個點，再按「對摺」，看它沿對稱軸對摺後跑到哪裡（學習單的 (2, 4)、(−3, 9) 都摺過就完成）
 
@@ -12,9 +12,9 @@ export function mountAxis(root) {
 }
 
 function build(root) {
-  const PTS = [{ x: 2, label: '(2, 4)' }, { x: -3, label: '(−3, 9)' }];   // 學習單三-(4) 的兩個點
+  const PTS = [{ x: 2, label: '(2, 4)' }, { x: -3, label: '(−3, 9)' }];   // 學習單二-4(2) 的兩個點
   root.innerHTML = `
-    ${taskHeader('任務② 找對稱軸', 'y = x² 要沿著哪一條直線對摺，左右兩邊才會完全重合？', '三 3-(3)(4)')}
+    ${taskHeader('任務② 找對稱軸', 'y = x² 要沿著哪一條直線對摺，左右兩邊才會完全重合？', '二 4')}
     <div class="lab">
       <div class="stage desmos-stage"><div id="ax-calc" class="desmos-box"></div></div>
       <div class="panel">
@@ -52,7 +52,7 @@ function build(root) {
     setStep($('#ax-step1'), s1);
     setStep($('#ax-step2'), s2,
       !st.found ? '先在步驟 1 找到對稱軸。'
-        : allSeen ? '✓ 兩個點都看過了，把它們的對稱點坐標寫進學習單三-(4)。'
+        : allSeen ? '✓ 兩個點都看過了，把它們的對稱點坐標寫進學習單二-4(2)。'
           : f.c !== 0 ? '先把摺線移回對稱軸 x = 0，再點點看。'
             : left.length < PTS.length && !f.animating ? `學習單上的 ${left.map((p) => p.label).join('、')} 也摺摺看。` : '',
       allSeen ? 'ok' : '');

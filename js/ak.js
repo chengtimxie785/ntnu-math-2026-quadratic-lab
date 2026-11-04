@@ -1,6 +1,6 @@
-// 任務③ 拉拉看 a（學習單第四部分表格、比較開口大小）
-// 任務⑤ 拉拉看 k（學習單第五部分）
-// mode = 'a'：只拉 a，k 固定為 0；mode = 'k'：a、k 都可以拉（第五部分最後一題要把 a 改成 −2）
+// 任務③ 拉拉看 a（學習單第三大題表格、比較開口大小）
+// 任務⑤ 拉拉看 k（學習單第四大題）
+// mode = 'a'：只拉 a，k 固定為 0；mode = 'k'：a、k 都可以拉（第四大題第 2 題要把 a 改成 −2）
 
 import { withDesmos, makeCalc, baseExpressions, fitSquare, neededHeight, watch, lifecycle, renderEq, slidersHTML, bindSliders, taskHeader, COLORS, L } from './desmos-core.js';
 import { eqText, eqHTML, approxEq, numHTML } from './format.js';
@@ -13,12 +13,12 @@ const TASKS = {
   a: {
     title: '任務③ 拉拉看 a',
     goal: '拉動 a，觀察開口方向、開口大小，以及最高點或最低點在哪裡，完成學習單的表格。',
-    ref: '四（表格、比較開口大小）',
+    ref: '三（表格、比較開口大小）',
   },
   k: {
     title: '任務⑤ 拉拉看 k',
     goal: '拉動 k，觀察圖形怎麼移動，最低點（或最高點）跑到哪裡。',
-    ref: '五',
+    ref: '四',
   },
 };
 // 學習單表格要填的值（拉到時自動打勾）

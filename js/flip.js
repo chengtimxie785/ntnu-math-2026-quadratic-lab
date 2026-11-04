@@ -1,4 +1,4 @@
-// 任務④ 上下翻（學習單第四部分的對摺題、歸納第 4 點）
+// 任務④ 上下翻（學習單第三大題的對摺題、歸納第 4 點）
 // 把 y = ax² 沿 x 軸翻下來，再拉 a 讓實線和虛線重合，找出 y = ax² 與 y = −ax² 的關係
 //
 // 兩步驟引導：步驟 1（翻下來）完成前，步驟 2 變暗、a 拉桿鎖住；
@@ -18,7 +18,7 @@ export function mountFlip(root) {
 
 function build(root) {
   root.innerHTML = `
-    ${taskHeader('任務④ 上下翻', '把 y = ax² 沿著 x 軸翻下來，它會和哪一個函數的圖形重合？', '四（對摺題、歸納第 4 點）')}
+    ${taskHeader('任務④ 上下翻', '把 y = ax² 沿著 x 軸翻下來，它會和哪一個函數的圖形重合？', '三（對摺題、歸納第 4 點）')}
     <div class="lab">
       <div class="stage desmos-stage"><div id="fp-calc" class="desmos-box"></div></div>
       <div class="panel">
@@ -38,7 +38,7 @@ function build(root) {
         </div>
         <div class="card" id="fp-sum" hidden>
           <h3>你發現了嗎？</h3>
-          <p style="margin:0">y = ax² 的圖形沿著 x 軸翻下來，都會和 y = ＿＿＿ 的圖形重合。<br>把答案寫在學習單第四部分「我的歸納」第 4 點。</p>
+          <p style="margin:0">y = ax² 的圖形沿著 x 軸翻下來，都會和 y = ＿＿＿ 的圖形重合。<br>把答案寫在學習單第三大題「我的歸納」第 4 點。</p>
         </div>
       </div>
     </div>`;
